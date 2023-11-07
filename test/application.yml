@@ -1,0 +1,692 @@
+# Copyright (c) 2012 Partners In Health.  All rights reserved.
+# The use and distribution terms for this software are covered by the
+# Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0.php)
+# which can be found in the file epl-v10.html at the root of this distribution.
+# By using this software in any fashion, you are agreeing to be bound by
+# the terms of this license.
+# You must not remove this notice, or any other, from this software.
+
+---
+grails:
+    profile: react-webpack
+    codegen:
+        defaultPackage: org
+    dbconsole:
+        enabled: true
+    gorm:
+        reactor:
+            # Whether to translate GORM events into Reactor events
+            # Disabled by default for performance reasons
+            events: false
+        failOnError: false
+    config:
+        locations:
+            #
+            # The first config file has the lowest priority. Its contents can
+            # be overwritten by any file following it that sets the same config
+            # key. The *last* config file has the final word (highest priority).
+            #
+            - classpath:META-INF/grails.build.info
+            - file:${catalina.base}/.grails/openboxes-config.properties
+            - file:${catalina.base}/.grails/openboxes-config.groovy
+            - file:${catalina.base}/.grails/openboxes.yml
+            - ~/.grails/openboxes-config.properties
+            - ~/.grails/openboxes-config.groovy
+            - ~/.grails/openboxes.yml
+    plugin:
+        console:
+            enabled: true  # https://github.com/sheehan/grails-console#security
+        databasemigration:
+            updateOnStart: false
+            updateOnStartFileName: changelog.groovy
+
+info:
+    app:
+        name: '@info.app.name@'
+        version: '@info.app.version@'
+        grailsVersion: '@info.app.grailsVersion@'
+
+spring:
+    main:
+        banner-mode: "off"
+    groovy:
+        template:
+            check-template-location: false
+
+quartz:
+    pluginEnabled: true
+    jdbcStore: false
+    autoStartup: true
+    monitor:
+        layout: custom
+        showTriggerNames: true
+        showCountdown: true
+        showTickingCloud: true
+
+# Spring Actuator Endpoints are Disabled by Default
+endpoints:
+    enabled: true
+    jmx:
+        enabled: true
+
+management:
+    info:
+        git:
+            mode: full
+
+server:
+    contextPath: "/openboxes"
+    session:
+        timeout: 3600
+---
+grails:
+    #
+    # From the asset-pipeline manual: "If you want settings to apply to
+    # both development runtime and build time the properties have to be
+    # duplicated in your application's application.yml [and build.gradle]."
+    #
+    # http://www.asset-pipeline.com/manual/index.html#configuration
+    # http://www.asset-pipeline.com/manual/index.html#configuration-2
+    #
+    # Every field except `bundle` should also be set in build.gradle.
+    #
+    # Because we use webpack to bundle .css and .js files, most of
+    # asset-pipeline's advanced features are unnecessary.
+    #
+    assets:
+        bundle: false
+        developmentRuntime: false
+        enableDigests: false
+        enableGzip: false
+        enableSourceMaps: false
+        maxThreads: 1
+        minifyCss: false
+        minifyJs: false
+        skipNonDigests: false
+    cache:
+        clearAtStartup: true
+    doc:
+        title: "OpenBoxes"
+        subtitle: ""
+        authors: "Justin Miranda"
+        license: "Eclipse Public License - Version 1.0"
+        copyright: ""
+        footer: ""
+    mail:
+        enabled: false
+        from: "info@openboxes.com"
+        prefix: "[OpenBoxes]"
+        host: "localhost"
+        port: "25"
+
+        # Authentication disabled by default
+        username: null
+        password: null
+
+        # Disable debug mode by default
+        debug: false
+    mime:
+        disable:
+            accept:
+                header:
+                    userAgents:
+                        - Gecko
+                        - WebKit
+                        - Presto
+                        - Trident
+        types:
+            all: '*/*'
+            atom: application/atom+xml
+            css: text/css
+            csv: text/csv
+            form: application/x-www-form-urlencoded
+            html:
+              - text/html
+              - application/xhtml+xml
+            js: text/javascript
+            json:
+              - application/json
+              - text/json
+            multipartForm: multipart/form-data
+            pdf: application/pdf
+            rss: application/rss+xml
+            text: text/plain
+            hal:
+              - application/hal+json
+              - application/hal+xml
+            xml:
+              - text/xml
+              - application/xml
+        file:
+            extensions: true
+        use:
+            accept:
+                header: false
+    resources:
+        #
+        # Set Cache-Control on non-asset-pipeline-managed static assets.
+        # See https://gsp.grails.org/latest/guide/resources.html
+        #
+        cachePeriod: 86400
+    urlmapping:
+        cache:
+            maxsize: 1000
+    controllers:
+        upload:
+            maxFileSize: 2097152
+            maxRequestSize: 2097152
+        defaultScope: singleton
+    converters:
+        encoding: UTF-8
+    views:
+        default:
+            codec: 'html'
+        enable:
+            jsessionid: false
+        gsp:
+            encoding: UTF-8
+            htmlcodec: xml
+            codecs:
+                expression: html
+                scriptlets: html
+                taglib: none
+                staticparts: none
+            sitemesh:
+                preprocess: true
+        javascript:
+            library: jquery
+    databinding:
+        dateFormats:
+            - 'MM/dd/yyyy'
+        convertEmptyStringsToNull: false
+endpoints:
+    jmx:
+        unique-names: true
+
+org.eclipse.jetty.util.log.class: org.eclipse.jetty.util.log.Slf4jLog
+org.jboss.logging.provider: slf4j
+server.tomcat.accesslog.enabled: true
+slf4j.detectLoggerNameMismatch: true
+
+---
+hibernate:
+    allow_update_outside_transaction: false
+    cache:
+        queries: false
+        provider_class: org.hibernate.cache.EhCacheProvider
+        region:
+            factory_class: org.hibernate.cache.ehcache.EhCacheRegionFactory
+        use_query_cache: false
+        use_second_level_cache: false
+
+dataSource:
+    pooled: true
+    jmxExport: true
+    driverClassName: com.mysql.cj.jdbc.Driver
+    dbCreate: none
+    dialect: org.hibernate.dialect.MySQL57InnoDBDialect
+    factory: org.apache.tomcat.jdbc.pool.DataSourceFactory
+    logger: com.mysql.cj.jdbc.log.StandardLogger
+    type: org.apache.tomcat.jdbc.pool.DataSource
+    properties:
+        # from https://docs.grails.org/3.3.16/guide/conf.html#dataSource
+        jmxEnabled: true
+        initialSize: 5
+        maxActive: 50
+        minIdle: 5
+        maxIdle: 25
+        maxWait: 10000
+        maxAge: 10 * 60000
+        timeBetweenEvictionRunsMillis: 5000
+        minEvictableIdleTimeMillis: 60000
+        validationQuery: SELECT 1
+        validationQueryTimeout: 3
+        validationInterval: 15000
+        testOnBorrow: false
+        testWhileIdle: true
+        testOnReturn: false
+        # https://tomcat.apache.org/tomcat-8.5-doc/jdbc-pool.html#JDBC_interceptors
+        jdbcInterceptors: "ConnectionState;StatementCache(max=200)"
+        defaultTransactionIsolation: java.sql.Connection.TRANSACTION_READ_COMMITTED
+
+environments:
+    development:
+        dataSource:
+            dumpQueriesOnException: true
+            formatSql: true
+            includeInnodbStatusInDeadlockExceptions: true
+            logAbandoned: true
+            logSql: false
+            logSlowQueries: true
+            username: "openboxes"
+            password: "openboxes"
+            url: jdbc:mysql://localhost:3306/openboxes?serverTimezone=UTC&useSSL=false
+    test:
+        dataSource:
+            dumpQueriesOnException: true
+            formatSql: false
+            includeInnodbStatusInDeadlockExceptions: true
+            logAbandoned: true
+            logSql: false
+            logSlowQueries: false
+            username: "openboxes"
+            password: "openboxes"
+            url: jdbc:mysql://localhost:3306/openboxes?serverTimezone=UTC&useSSL=false
+    production:
+        dataSource:
+            dumpQueriesOnException: false
+            formatSql: false
+            includeInnodbStatusInDeadlockExceptions: true
+            logSql: false
+            logSlowQueries: false
+            username: "openboxes"
+            password: "openboxes"
+            url: jdbc:mysql://localhost:3306/openboxes?serverTimezone=UTC&useSSL=false
+---
+openboxes:
+    ajaxRequest:
+        timeout: 120000
+
+    dashboard:
+        yearTypes:
+            fiscalYear:
+                start: "07/01" # format: MM/DD, For PIH and the Govt of Dominica fiscal year start July 1
+                end: "06/30" # format: MM/DD
+                labelYearPrefix: "FY "
+                yearFormat: "yy"
+            calendarYear:
+                start: "01/01"
+                end: "12/31"
+                labelYearPrefix: ""
+                yearFormat: "yyyy"
+
+    # OpenBoxes identifier config
+    identifier:
+        numeric: "0123456789"
+        alphabetic: "ABCDEFGHJKMNPQRSTUVXYZ"
+        alphanumeric: "0123456789ABCDEFGHJKMNPQRSTUVWXYZ"
+        transaction:
+            format: "AAA-AAA-AAA"
+        order:
+            format: "NNNLLL"
+        organization:
+            format: "AAA"
+            minSize: 2
+            maxSize: 4
+        product:
+            format: "LLNN"
+        productSupplier:
+            format: "NNNN"
+            prefix:
+                enabled: true
+        receipt:
+            format: "NNNLLL"
+        requisition:
+            format: "NNNLLL"
+        shipment:
+            format: "NNNLLL"
+        sequenceNumber:
+            format: "00000"
+        invoice:
+            format: "NNNLLL"
+        location:
+            format: "NNNLLL"
+        purchaseOrder:
+            generatorType: "SEQUENCE" # IdentifierGeneratorTypeCode.SEQUENCE
+            sequenceNumber:
+                format: "000000"
+            format: 'PO-$\{destinationPartyCode}-$\{sequenceNumber}' # single quote for curly braces escape character
+            properties:
+                destinationPartyCode: "destinationParty.code"
+        productCode:
+            generatorType: "SEQUENCE" # IdentifierGeneratorTypeCode.SEQUENCE
+            delimiter: "-"
+            format: "${productTypeCode}${delimiter}${sequenceNumber}"
+            properties:
+                productTypeCode: "code"
+        defaultProductType:
+            id: "DEFAULT"
+
+    order:
+        orderStatusPropertyMap:
+            PLACED: ["productCode", "sourceName", "supplierCode", "manufacturer", "manufacturerCode", "quantity", "unitPrice", "unitOfMeasure", "budgetCode"]
+
+    purchaseOrder:
+        editableProperties:
+            status: "PLACED"
+            deny: ["productCode", "sourceName", "supplierCode", "manufacturer", "manufacturerCode", "quantity", "unitOfMeasure"]
+
+
+    # OpenBoxes default line printer port
+    linePrinterTerminal:
+        port: "LPT1"
+
+    # OpenBoxes default uploads directory location
+    uploads:
+        location: "uploads"
+
+
+    # Fullstory integration
+    fullstory:
+        enabled: false
+        debug: false
+        host: "fullstory.com"
+        org: ""
+        namespace: "FS"
+
+    # Hotjar integration
+    hotjar:
+        enabled: false
+        hjid: 0
+        hjsv: 6
+
+    # Forecasting feature
+    forecasting:
+        enabled: true
+        demandPeriod: 365
+
+    # Bill of Materials feature
+    bom:
+        enabled: false
+
+    # User signup
+    signup:
+        enabled: true
+        recaptcha:
+            enabled: false
+            v2:
+                siteKey: ""
+                secretKey: ""
+        additionalQuestions:
+            enabled: false
+
+    # UserVoice widget
+    uservoice:
+        widget:
+            enabled: false
+            position: "right"
+
+    # Zopim widget
+    zopim:
+        widget:
+            enabled: false
+            url: "//v2.zopim.com/?2T7RMi7ERqr3s8N20KQ3wOBRudcwosBA"
+
+    # HelpScout beacon
+    helpscout:
+        widget:
+            color: "#3AB4B1"
+            enabled: true
+            key: "44ee4f01-5334-4b93-ad25-03037903eb80"
+
+    # JIRA Issue Collector
+    jira:
+        issue:
+            collector:
+                enabled: false
+                url: "https://openboxes.atlassian.net/s/d41d8cd98f00b204e9800998ecf8427e/en_USgc5zl3-1988229788/6318/12/1.4.10/_/download/batch/com.atlassian.jira.collector.plugin.jira-issue-collector-plugin:issuecollector/com.atlassian.jira.collector.plugin.jira-issue-collector-plugin:issuecollector.js?collectorId=fb813fdb"
+
+    # OpenBoxes Feedback
+    mail:
+        feedback:
+            enabled: false
+            recipients: ["feedback@openboxes.com"]
+        # OpenBoxes Error Emails (bug reports)
+        errors:
+            enabled: true
+            recipients: ["errors@openboxes.com"]
+
+    # Barcode scanner (disabled by default)
+    scannerDetection:
+        enabled: false
+
+    barcode:
+        printer:
+            # Print barcode labels via USB
+            name: "printer-thermalprinter"
+            #  Print barcode labels via RAW
+            ipAddress: "127.0.0.1"
+            port: 9100
+
+    # Default delay and min length for typeahead components
+    typeahead:
+        delay: 300
+        minLength: 3
+
+    refreshAnalyticsDataOnStartup:
+        enabled: true
+
+    jobs:
+        # Send stock alerts
+        sendStockAlertsJob:
+            enabled: true
+            skipOnEmpty: true
+            daysUntilExpiry: 60
+            cronExpression: "0 0 0 * * ?" # every day at midnight
+
+        # Refresh inventory snapshots (triggered manually)
+        refreshInventorySnapshotJob:
+            enabled: true
+            retryOnError: false
+            maxRetryAttempts: 3
+
+        # Refresh inventory snapshots after transaction (only for transaction entries)
+        refreshInventorySnapshotAfterTransactionJob:
+            enabled: true
+            retryOnError: false
+            maxRetryAttempts: 3
+
+        # Refresh order summary snapshots
+        refreshOrderSummaryJob:
+            enabled: true
+            cronExpression: "0 0 2 * * ?" # at 02:00:00am every day
+
+        # Refresh product availability materialized view
+        refreshProductAvailabilityJob:
+            enabled: true
+            cronExpression: "0 0 0/2 * * ?" # every two hours
+            delayStart: true
+            delayInMilliseconds: 5000
+
+        # Refresh transaction fact table
+        refreshTransactionFactJob:
+            enabled: true
+            cronExpression: "0 0 0 * * ?" # every day at midnight
+
+        # Refresh stockout data for yesterday
+        refreshStockoutDataJob:
+            enabled: true
+            cronExpression: "0 0 1 * * ?" # at 01:00:00am every day
+
+        # Refresh demand fact table
+        refreshDemandDataJob:
+            enabled: true
+            cronExpression: "0 0 1 * * ?" # at 01:00:00am every day
+
+        # Assign identifier job
+        assignIdentifierJob:
+            enabled: true
+            cronExpression: "0 * * * * ?" # every minute
+
+        # Calculate historical quantity on hand
+        calculateHistoricalQuantityJob:
+            enabled: false
+            cronExpression: "0 0 0 * * ?" # every day at midnight
+            daysToProcess: 540 # 18 months
+
+        # Data Cleaning Job
+        dataCleaningJob:
+            enabled: true
+            cronExpression: "0 */5 * * * ?"       # every five minutes
+
+        # Data Migration Job (enabled, but needs to be triggered manually)
+        dataMigrationJob:
+            enabled: true
+
+        updateExchangeRatesJob:
+            enabled: false
+            cronExpression: "0 0 * * * ?" # every hour
+
+    # LDAP configuration
+    ldap:
+        enabled: false
+        context:
+            managerDn: "cn=read-only-admin,dc=example,dc=com"
+            managerPassword: "password"
+            server:
+                host: "ldap.forumsys.com"
+                port: 389
+
+        # LDAP Search
+        search:
+            base: "dc=example,dc=com"
+            filter: "(uid={0})"
+            searchSubtree: true
+            attributesToReturn: ['mail', 'givenName']
+
+    # Stock Card > Consumption > Reason codes
+    # Examples: Stock out, Low stock, Expired, Damaged, Could not locate, Insufficient quantity reconditioned
+    stockCard:
+        consumption:
+            stockout: &stockout 1
+            low_stock: &low_stock 2
+            expired: &expired 3
+            damaged: &damaged 4
+            could_not_locate: &could_not_locate 14
+            insufficient_quantity_reconditioned: &insufficient_quantity_reconditioned 19
+            reasonCodes: [*stockout, *low_stock, *expired, *damaged, *could_not_locate, *insufficient_quantity_reconditioned]
+
+    # Localization configuration - default and supported locales
+    locale:
+        custom:
+            enabled: false
+        defaultLocale: 'en'
+        localizationModeLocale: 'ach'
+        supportedLocales: ['ar','ach','de','en','es','fr', 'ht', 'it','pt','fi','zh']
+        # Currency configuration
+        defaultCurrencyCode: "USD"
+        defaultCurrencySymbol: '\$'
+        supportedCurrencyCodes: ["USD", "CAD", "EUR", "GBP"]
+        currencyApi:
+            url: "https://api.exchangeratesapi.io/latest?base=%s"
+            apiKey: ""
+            password: ""
+        translationApi:
+            uri: "https://translate.yandex.net/api/v1.5/tr.json/translate?key=%s&text=%s&lang=%s&format=%s"
+            apiKey: ""
+            format: "plain"
+
+    # Accounting (Budget Code, GL Account)
+    accounting:
+        enabled: true
+
+    # Inventory snapshot configuration
+    inventorySnapshot:
+        batchSize: 100
+
+    # Allow users to customize logo image url as well as label
+    logo:
+        url: "/assets/openboxes_logo_40x40.jpg"
+        label: ""
+    report:
+        logo:
+            url: "https://openboxes.com/img/logo_100.png"
+
+    # Allow system to anonymize user data to prevent it from being accessed by unauthorized users
+    anonymize:
+        enabled: false
+
+    generateName:
+        separator: " - "
+
+    # Disable feature during development
+    shipping:
+        splitPickItems.enabled: true
+        search:
+        maxResults: 1000
+
+    # Automatically create temporary receiving locations for shipments
+    receiving:
+        createReceivingLocation:
+            enabled: true
+        receivingLocation:
+            prefix: "R"
+
+    # Indicates which activities are required for a location to allow logins
+    chooseLocation:
+        requiredActivities: ["MANAGE_INVENTORY"]
+
+    expirationDate:
+        minValue: "01/01/2000"
+    cycleCount:
+        additionalColumns: {}
+
+    purchasing:
+        approval:
+            enabled: false
+            minimumAmount: 0.00
+            defaultRoleTypes: ["ROLE_APPROVER"]
+
+    api:
+        pagination:
+            enabled: true
+            pageSize: 10
+
+mail:
+    error:
+        enabled: false
+        debug: false
+        to: 'errors@openboxes.com'
+        server: "localhost"
+        port: "25"
+        from: "info@openboxes.com"
+        username: null
+        password: null
+        prefix: "[OpenBoxes]"
+
+uiperformance:
+    enabled: false
+
+# TODO OBGM 1: Add jqueryValidation plugin config if will be needed
+# TODO OBGM 2: Add log4j plugin config if will be needed
+# TODO OBGM 3: Add springcache plugin config if will be needed
+# TODO OBGM 4: Add raven plugin config if will be needed
+# TODO OBGM 5: Add Joda-Time plugin config if will be needed
+# TODO OBGM 6: Add resources plugin config if will be needed
+
+# TODO OBGM: Not sure about params below
+#grails:
+#    exceptionresolver:
+#        params:
+#            exclude: ['password', 'passwordConfirm']
+#    # scaffolding templates configuration
+#    scaffolding:
+#        templates:
+#            domainSuffix: 'Instance'
+#    # Set to false to use the new Grails 1.2 JSONBuilder in the render method
+#    json:
+#        legacy:
+#            builder: false
+#    # enabled native2ascii conversion of i18n properties files
+#    enable:
+#        native2ascii: true
+#    # whether to install the java.util.logging bridge for sl4j. Disable fo AppEngine!
+#    logging:
+#        jul:
+#            usebridge: true
+#    # packages to include in Spring bean scanning
+#    spring:
+#        bean:
+#            packages: []
+#    # request parameters to mask when logging exceptions
+#    exceptionresolver:
+#        params:
+#            exclude: ['password']
+#    validateable:
+#        packages: [
+#        'org.pih.warehouse.inventory',
+#        'org.pih.warehouse.fulfillment',
+#        'org.pih.warehouse.order',
+#        'org.pih.warehouse.request',
+#        'org.pih.warehouse.shipment',
+#]

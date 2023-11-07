@@ -8,16 +8,14 @@ import { confirmAlert } from 'react-confirm-alert';
 import notification from 'components/Layout/notifications/notification';
 import LoginModal from 'components/LoginModal';
 import NotificationType from 'consts/notificationTypes';
-import { object } from 'prop-types';
 
-export const justRejectRequestError = (error) => Promise.reject(error);
+const justRejectRequestError = error => Promise.reject(error);
 
 const apiClient = axios.create({});
-export const apiClientCustomResponseHandler = axios.create({});
 
 export function parseResponse(data) {
   if (_.isArray(data)) {
-    return _.map(data, (value) => (parseResponse(value)));
+    return _.map(data, value => (parseResponse(value)));
   }
 
   if (_.isPlainObject(data)) {
@@ -30,37 +28,30 @@ export function parseResponse(data) {
 }
 
 export function flattenRequest(data) {
-  // eslint-disable-next-line max-len
-  // TODO: flattenRequest was specifically for the Grails 1. Temporary return unflattened data, but when rebase process will be finished clean up and remove this util
-  return data;
+  if (_.isArray(data)) {
+    return _.map(data, value => flattenRequest(value));
+  }
 
-  // if (_.isArray(data)) {
-  //   return _.map(data, value => flattenRequest(value));
-  // }
-  //
-  // if (_.isPlainObject(data)) {
-  //   const obj = {};
-  //
-  //   _.forEach(data, (value, key) => {
-  //     const flattenedVal = flattenRequest(value);
-  //
-  //     if (_.isPlainObject(flattenedVal)) {
-  //       _.forEach(
-  //          flattenedVal,
-  //          (childVal, childKey) => { obj[`${key}.${childKey}`] = childVal; }
-  //       );
-  //     } else {
-  //       obj[key] = flattenedVal;
-  //     }
-  //   });
-  //
-  //   return obj;
-  // }
-  //
-  // return data === null || data === undefined ? '' : data;
+  if (_.isPlainObject(data)) {
+    const obj = {};
+
+    _.forEach(data, (value, key) => {
+      const flattenedVal = flattenRequest(value);
+
+      if (_.isPlainObject(flattenedVal)) {
+        _.forEach(flattenedVal, (childVal, childKey) => { obj[`${key}.${childKey}`] = childVal; });
+      } else {
+        obj[key] = flattenedVal;
+      }
+    });
+
+    return obj;
+  }
+
+  return data === null || data === undefined ? '' : data;
 }
 
-export const handleSuccess = (response) => response;
+export const handleSuccess = response => response;
 
 export const handleError = (error) => {
   const errorMessage = _.get(error, 'response.data.errorMessage', '');
@@ -76,7 +67,7 @@ export const handleError = (error) => {
 
     case 401:
       confirmAlert({
-        customUI: (props) => (<LoginModal {...props} />),
+        customUI: props => (<LoginModal {...props} />),
       });
       break;
     case 403:
@@ -106,70 +97,7 @@ export const handleError = (error) => {
   return Promise.reject(error);
 };
 
-// TODO: This is temporary cleaner. Once migration is complete it should be removed
-const cleanUrlFromContextPath = (url) => url.replace('/openboxes', '');
-
-export const urlInterceptor = (config) => {
-  const contextPath = window.CONTEXT_PATH;
-  const cleanedUrl = _.trimStart(config.url ? cleanUrlFromContextPath(config.url) : '', '/');
-
-  if (!contextPath) {
-    return { ...config, url: `/${cleanedUrl}` };
-  }
-
-  const cleanedContextPath = _.trimEnd(contextPath, '/');
-  const url = `${cleanedContextPath}/${cleanedUrl}`;
-  return { ...config, url };
-};
-
-export const stringUrlInterceptor = (url) => {
-  const config = urlInterceptor({ url });
-  return config.url;
-};
-
-export const handleValidationErrors = (setState) => (error) => {
-  if (error.response.status === 400) {
-    const alertMessage = _.join(_.get(error, 'response.data.errorMessages', ''), ' ');
-    setState({ alertMessage, showAlert: true });
-
-    return Promise.reject(error);
-  }
-
-  return handleError(error);
-};
-
-export const mapToEmptyString = (values, valuesToSkip = []) => Object.keys(values)
-  .reduce((acc, curr) => {
-    if (values[curr] in valuesToSkip) {
-      return acc;
-    }
-
-    if (_.isPlainObject(values[curr])) {
-      const nestedObject = mapToEmptyString(values[curr], valuesToSkip);
-      return {
-        ...acc,
-        nestedObject,
-      };
-    }
-
-    if (values[curr]) {
-      return {
-        ...acc,
-        [curr]: values[curr],
-      };
-    }
-    return {
-      ...acc,
-      [curr]: '',
-    };
-  }, {});
-
 apiClient.interceptors.response.use(handleSuccess, handleError);
-apiClient.interceptors.request.use(urlInterceptor, justRejectRequestError);
-
-apiClientCustomResponseHandler.interceptors.request.use(
-  urlInterceptor,
-  justRejectRequestError,
-);
+apiClient.interceptors.request.use(config => config, justRejectRequestError);
 
 export default apiClient;

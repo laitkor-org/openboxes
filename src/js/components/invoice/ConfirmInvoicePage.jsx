@@ -8,13 +8,12 @@ import { connect } from 'react-redux';
 import { Tooltip } from 'react-tippy';
 
 import { hideSpinner, showSpinner } from 'actions';
-import { ORDER_SHOW, STOCK_MOVEMENT_SHOW } from 'api/urls';
 import DocumentButton from 'components/DocumentButton';
 import ArrayField from 'components/form-elements/ArrayField';
 import DateField from 'components/form-elements/DateField';
 import LabelField from 'components/form-elements/LabelField';
 import TextField from 'components/form-elements/TextField';
-import apiClient, { stringUrlInterceptor } from 'utils/apiClient';
+import apiClient from 'utils/apiClient';
 import { renderFormField } from 'utils/form-utils';
 import { getInvoiceDescription } from 'utils/form-values-utils';
 import accountingFormat from 'utils/number-utils';
@@ -123,7 +122,7 @@ const INVOICE_ITEMS = {
           const orderId = values && values.invoiceItems
               && values.invoiceItems[rowIndex]
               && values.invoiceItems[rowIndex].orderId;
-          return { url: orderId ? ORDER_SHOW(orderId) : '' };
+          return { url: orderId ? `/openboxes/order/show/${orderId}` : '' };
         },
       },
       shipmentNumber: {
@@ -135,7 +134,7 @@ const INVOICE_ITEMS = {
           const shipmentId = values && values.invoiceItems
               && values.invoiceItems[rowIndex]
               && values.invoiceItems[rowIndex].shipmentId;
-          return { url: shipmentId ? STOCK_MOVEMENT_SHOW(shipmentId) : '' };
+          return { url: shipmentId ? `/openboxes/stockMovement/show/${shipmentId}` : '' };
         },
       },
       budgetCode: {
@@ -277,7 +276,7 @@ class ConfirmInvoicePage extends Component {
   fetchInvoiceData() {
     if (this.state.values.id) {
       this.props.showSpinner();
-      const url = `/api/invoices/${this.state.values.id}`;
+      const url = `/openboxes/api/invoices/${this.state.values.id}`;
       apiClient.get(url)
         .then((response) => {
           const values = {
@@ -308,7 +307,7 @@ class ConfirmInvoicePage extends Component {
     this.setState({
       isFirstPageLoaded: true,
     });
-    const url = `/api/invoices/${this.state.values.id}/items?offset=${startIndex}&max=${this.props.pageSize}`;
+    const url = `/openboxes/api/invoices/${this.state.values.id}/items?offset=${startIndex}&max=${this.props.pageSize}`;
     apiClient.get(url)
       .then((response) => {
         this.setInvoiceItems(response, startIndex);
@@ -316,25 +315,25 @@ class ConfirmInvoicePage extends Component {
   }
 
   submitInvoice() {
-    const url = `/api/invoices/${this.state.values.id}/submit`;
+    const url = `/openboxes/api/invoices/${this.state.values.id}/submit`;
     apiClient.post(url)
       .then(() => {
-        window.location = stringUrlInterceptor(`/invoice/show/${this.state.values.id}`);
+        window.location = `/openboxes/invoice/show/${this.state.values.id}`;
       })
       .catch(() => this.props.hideSpinner());
   }
 
   postInvoice() {
-    const url = `/api/invoices/${this.state.values.id}/post`;
+    const url = `/openboxes/api/invoices/${this.state.values.id}/post`;
     apiClient.post(url)
       .then(() => {
-        window.location = stringUrlInterceptor(`/invoice/show/${this.state.values.id}`);
+        window.location = `/openboxes/invoice/show/${this.state.values.id}`;
       })
       .catch(() => this.props.hideSpinner());
   }
 
   fetchPrepaymentItems() {
-    const url = `/api/invoices/${this.state.values.id}/prepaymentItems`;
+    const url = `/openboxes/api/invoices/${this.state.values.id}/prepaymentItems`;
     apiClient.get(url)
       .then((response) => {
         const { data } = response.data;
@@ -386,7 +385,7 @@ class ConfirmInvoicePage extends Component {
                   <button
                     type="button"
                     className="btn btn-outline-secondary float-right btn-form btn-xs"
-                    onClick={() => { window.location = stringUrlInterceptor(`/invoice/show/${values.id}`); }}
+                    onClick={() => { window.location = `/openboxes/invoice/show/${values.id}`; }}
                   >
                     <span><i className="fa fa-sign-out pr-2" /><Translate id="react.default.button.saveAndExit.label" defaultMessage="Save and exit" /></span>
                   </button>

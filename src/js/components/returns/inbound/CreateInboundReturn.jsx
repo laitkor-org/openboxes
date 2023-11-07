@@ -9,7 +9,7 @@ import { withRouter } from 'react-router-dom';
 import { hideSpinner, showSpinner } from 'actions';
 import SelectField from 'components/form-elements/SelectField';
 import TextField from 'components/form-elements/TextField';
-import apiClient, { parseResponse, stringUrlInterceptor } from 'utils/apiClient';
+import apiClient, { parseResponse } from 'utils/apiClient';
 import { renderFormField } from 'utils/form-utils';
 import { debounceLocationsFetch } from 'utils/option-utils';
 import Translate from 'utils/Translate';
@@ -146,7 +146,7 @@ class CreateInboundReturn extends Component {
   fetchInboundReturn(props) {
     if (props.match.params.inboundReturnId) {
       props.showSpinner();
-      const url = `/api/stockTransfers/${props.match.params.inboundReturnId}`;
+      const url = `/openboxes/api/stockTransfers/${props.match.params.inboundReturnId}`;
       apiClient.get(url)
         .then((resp) => {
           const values = parseResponse(resp.data.data);
@@ -185,12 +185,12 @@ class CreateInboundReturn extends Component {
 
       const payload = {
         description: values.description,
-        origin: { id: values.origin.id },
-        destination: { id: values.destination.id },
+        'origin.id': values.origin.id,
+        'destination.id': values.destination.id,
         type: 'RETURN_ORDER',
       };
 
-      const url = '/api/stockTransfers/';
+      const url = '/openboxes/api/stockTransfers/';
 
       apiClient.post(url, payload)
         .then((response) => {
@@ -199,7 +199,7 @@ class CreateInboundReturn extends Component {
             this.setState({
               values: resp,
             }, () => {
-              this.props.history.push(stringUrlInterceptor(`/stockTransfer/createInboundReturn/${this.state.values.id}`));
+              this.props.history.push(`/openboxes/stockTransfer/createInboundReturn/${this.state.values.id}`);
               this.props.nextPage(this.state.values);
             });
           }

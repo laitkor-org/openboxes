@@ -5,7 +5,6 @@ import { connect } from 'react-redux';
 import { withRouter } from 'react-router-dom';
 
 import { fetchTranslations } from 'actions';
-import { stringUrlInterceptor } from 'utils/apiClient';
 import Translate from 'utils/Translate';
 
 class WelcomePage extends Component {
@@ -20,15 +19,15 @@ class WelcomePage extends Component {
   }
 
   skipConfiguration() {
-    this.props.history.push(stringUrlInterceptor('/'));
+    this.props.history.push('/openboxes');
   }
 
   createLocation() {
-    this.props.history.push(stringUrlInterceptor('/locationsConfiguration/create'));
+    this.props.history.push('/openboxes/locationsConfiguration/create');
   }
 
   importLocations() {
-    this.props.history.push(stringUrlInterceptor('/locationsConfiguration/upload'));
+    this.props.history.push('/openboxes/locationsConfiguration/upload');
   }
 
   render() {

@@ -10,7 +10,6 @@ import ReactTable from 'react-table';
 import { Tooltip } from 'react-tippy';
 
 import { hideSpinner, showSpinner } from 'actions';
-import { STOCK_TRANSFER_PRINT } from 'api/urls';
 import { extractStockTransferItems, prepareRequest } from 'components/stock-transfer/utils';
 import apiClient, { flattenRequest, parseResponse } from 'utils/apiClient';
 import customTreeTableHOC from 'utils/CustomTreeTable';
@@ -239,7 +238,7 @@ class StockTransferSecondPage extends Component {
 
   fetchStockTransfer() {
     this.props.showSpinner();
-    const url = `/api/stockTransfers/${this.props.match.params.stockTransferId}`;
+    const url = `/openboxes/api/stockTransfers/${this.props.match.params.stockTransferId}`;
 
     apiClient.get(url)
       .then((response) => {
@@ -269,7 +268,7 @@ class StockTransferSecondPage extends Component {
    */
   fetchBins() {
     this.props.showSpinner();
-    const url = '/api/internalLocations';
+    const url = '/openboxes/api/internalLocations';
 
     const mapBins = bins => (_.chain(bins)
       .orderBy(['label'], ['asc']).value()
@@ -303,7 +302,7 @@ class StockTransferSecondPage extends Component {
    * @public
    */
   saveStockTransfer(data, callback) {
-    const url = `/api/stockTransfers/${this.props.match.params.stockTransferId}`;
+    const url = `/openboxes/api/stockTransfers/${this.props.match.params.stockTransferId}`;
     const payload = prepareRequest(data, APPROVED);
     apiClient.put(url, flattenRequest(payload))
       .then((response) => {
@@ -333,7 +332,7 @@ class StockTransferSecondPage extends Component {
     const itemToDelete = _.get(this.state.stockTransfer.stockTransferItems, `[${itemIndex}]`);
 
     if (itemToDelete.id) {
-      const url = `/api/stockTransferItems/${itemToDelete.id}`;
+      const url = `/openboxes/api/stockTransferItems/${itemToDelete.id}`;
       apiClient.delete(url)
         .then((response) => {
           const stockTransfer = parseResponse(response.data.data);
@@ -388,9 +387,11 @@ class StockTransferSecondPage extends Component {
   }
 
   printStockTransfer() {
+    const url = `/openboxes/stockTransfer/print/${this.props.match.params.stockTransferId}`;
+
     this.saveStockTransfer(
       this.state.stockTransfer,
-      () => window.open(STOCK_TRANSFER_PRINT(this.props.match.params.stockTransferId), '_blank'),
+      () => window.open(url, '_blank'),
     );
   }
 

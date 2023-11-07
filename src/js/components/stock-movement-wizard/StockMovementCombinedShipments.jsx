@@ -50,7 +50,7 @@ class StockMovementCombinedShipments extends Component {
   get wizardTitle() {
     const { values } = this.state;
     if (!values.movementNumber && !values.trackingNumber) {
-      return [];
+      return '';
     }
     return [
       {
@@ -131,7 +131,7 @@ class StockMovementCombinedShipments extends Component {
   fetchInitialValues() {
     if (this.props.match.params.stockMovementId) {
       this.props.showSpinner();
-      const url = `/api/stockMovements/${this.props.match.params.stockMovementId}`;
+      const url = `/openboxes/api/stockMovements/${this.props.match.params.stockMovementId}`;
       apiClient.get(url)
         .then((response) => {
           const resp = response.data.data;

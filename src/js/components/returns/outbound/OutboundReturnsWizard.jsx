@@ -63,7 +63,7 @@ class OutboundReturns extends Component {
   get wizardTitle() {
     const { values } = this.state;
     if (!values.stockTransferNumber || !values.origin || !values.destination) {
-      return [];
+      return '';
     }
 
     return [
@@ -95,7 +95,7 @@ class OutboundReturns extends Component {
   fetchInitialValues() {
     if (this.props.match.params.outboundReturnId) {
       this.props.showSpinner();
-      const url = `/api/stockTransfers/${this.props.match.params.outboundReturnId}`;
+      const url = `/openboxes/api/stockTransfers/${this.props.match.params.outboundReturnId}`;
 
       apiClient.get(url)
         .then((response) => {

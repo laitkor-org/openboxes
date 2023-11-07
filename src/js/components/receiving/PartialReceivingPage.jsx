@@ -16,7 +16,7 @@ import SelectField from 'components/form-elements/SelectField';
 import TableRowWithSubfields from 'components/form-elements/TableRowWithSubfields';
 import TextField from 'components/form-elements/TextField';
 import EditLineModal from 'components/receiving/modals/EditLineModal';
-import apiClient, { flattenRequest, parseResponse, stringUrlInterceptor } from 'utils/apiClient';
+import apiClient, { flattenRequest, parseResponse } from 'utils/apiClient';
 import Checkbox from 'utils/Checkbox';
 import { renderFormField } from 'utils/form-utils';
 import { formatProductDisplayName, getReceivingPayloadContainers } from 'utils/form-values-utils';
@@ -475,7 +475,7 @@ class PartialReceivingPage extends Component {
    */
   fetchPartialReceiptCandidates() {
     this.props.showSpinner();
-    const url = `/api/partialReceiving/${this.props.match.params.shipmentId}?stepNumber=1`;
+    const url = `/openboxes/api/partialReceiving/${this.props.match.params.shipmentId}?stepNumber=1`;
 
     return apiClient.get(url)
       .then((response) => {
@@ -488,7 +488,7 @@ class PartialReceivingPage extends Component {
 
   saveValues(formValues) {
     this.props.showSpinner();
-    const url = `/api/partialReceiving/${this.props.match.params.shipmentId}?stepNumber=1`;
+    const url = `/openboxes/api/partialReceiving/${this.props.match.params.shipmentId}?stepNumber=1`;
 
     const payload = {
       ...formValues,
@@ -501,7 +501,7 @@ class PartialReceivingPage extends Component {
     this.saveValues(formValues)
       .then(() => {
         const { requisition, shipmentId } = formValues;
-        window.location = stringUrlInterceptor(`/stockMovement/show/${requisition || shipmentId}`);
+        window.location = `/openboxes/stockMovement/show/${requisition || shipmentId}`;
       })
       .catch(() => this.props.hideSpinner());
   }
@@ -592,7 +592,7 @@ class PartialReceivingPage extends Component {
     this.props.showSpinner();
     const { values } = this.state;
     const { shipmentId } = values;
-    const url = `/api/partialReceiving/exportCsv/${shipmentId}`;
+    const url = `/openboxes/api/partialReceiving/exportCsv/${shipmentId}`;
     /** We have to omit product.displayNames, due to an error
      *  while binding bindData(partialReceiptItem, shipmentItemMap)
      *  it expects product.displayNames to have a setter, as we pass
@@ -629,7 +629,7 @@ class PartialReceivingPage extends Component {
       },
     };
 
-    const url = `/api/partialReceiving/importCsv/${this.state.values.shipmentId}`;
+    const url = `/openboxes/api/partialReceiving/importCsv/${this.state.values.shipmentId}`;
 
     return apiClient.post(url, formData, config)
       .then(() => {
@@ -642,7 +642,7 @@ class PartialReceivingPage extends Component {
   }
 
   transitionToNextStep(formValues) {
-    const url = `/api/partialReceiving/${this.props.match.params.shipmentId}?stepNumber=1`;
+    const url = `/openboxes/api/partialReceiving/${this.props.match.params.shipmentId}?stepNumber=1`;
     const payload = {
       receiptStatus: 'CHECKING',
       ...formValues,

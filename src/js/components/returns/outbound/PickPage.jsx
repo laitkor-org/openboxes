@@ -131,7 +131,7 @@ class PickPage extends Component {
 
   fetchOutboundReturn() {
     this.props.showSpinner();
-    const url = `/api/stockTransfers/${this.props.match.params.outboundReturnId}`;
+    const url = `/openboxes/api/stockTransfers/${this.props.match.params.outboundReturnId}`;
 
     return apiClient.get(url)
       .then((resp) => {
@@ -150,11 +150,11 @@ class PickPage extends Component {
 
   nextPage() {
     this.props.showSpinner();
-    const url = `/api/stockTransfers/${this.props.match.params.outboundReturnId}`;
-    const payload = parseResponse({
+    const url = `/openboxes/api/stockTransfers/${this.props.match.params.outboundReturnId}`;
+    const payload = {
       ...this.state.values.outboundReturn,
       status: 'PLACED',
-    });
+    };
 
     apiClient.put(url, payload)
       .then((resp) => {

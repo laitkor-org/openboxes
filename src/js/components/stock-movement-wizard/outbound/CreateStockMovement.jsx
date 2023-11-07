@@ -15,7 +15,7 @@ import DateField from 'components/form-elements/DateField';
 import SelectField from 'components/form-elements/SelectField';
 import TextField from 'components/form-elements/TextField';
 import AddDestinationModal from 'components/stock-movement-wizard/modals/AddDestinationModal';
-import apiClient, { stringUrlInterceptor } from 'utils/apiClient';
+import apiClient from 'utils/apiClient';
 import { renderFormField } from 'utils/form-utils';
 import { debounceLocationsFetch, debouncePeopleFetch } from 'utils/option-utils';
 import Translate, { translateWithDefaultMessage } from 'utils/Translate';
@@ -252,7 +252,7 @@ class CreateStockMovement extends Component {
    * @public
    */
   fetchRequisitionTypes() {
-    const url = '/api/getRequestTypes';
+    const url = '/openboxes/api/getRequestTypes';
 
     return apiClient.get(url)
       .then((response) => {
@@ -291,7 +291,7 @@ class CreateStockMovement extends Component {
    */
   fetchStockLists(origin, destination, clearStocklist) {
     this.props.showSpinner();
-    const url = `/api/stocklists?origin=${origin.id}&destination=${destination.id}`;
+    const url = `/openboxes/api/stocklists?origin=${origin.id}&destination=${destination.id}`;
 
     return apiClient.get(url)
       .then((response) => {
@@ -325,19 +325,19 @@ class CreateStockMovement extends Component {
 
       let stockMovementUrl = '';
       if (values.stockMovementId) {
-        stockMovementUrl = `/api/stockMovements/${values.stockMovementId}/updateRequisition`;
+        stockMovementUrl = `/openboxes/api/stockMovements/${values.stockMovementId}/updateRequisition`;
       } else {
-        stockMovementUrl = '/api/stockMovements';
+        stockMovementUrl = '/openboxes/api/stockMovements';
       }
 
       const payload = {
         name: '',
         description: values.description,
         dateRequested: values.dateRequested,
-        origin: { id: values.origin.id },
-        destination: { id: values.destination.id },
-        requestedBy: { id: values.requestedBy.id },
-        stocklist: { id: _.get(values.stocklist, 'id') || '' },
+        'origin.id': values.origin.id,
+        'destination.id': values.destination.id,
+        'requestedBy.id': values.requestedBy.id,
+        'stocklist.id': _.get(values.stocklist, 'id') || '',
         requestType: values.requestType.value,
       };
 
@@ -345,7 +345,7 @@ class CreateStockMovement extends Component {
         .then((response) => {
           if (response.data) {
             const resp = response.data.data;
-            this.props.history.push(stringUrlInterceptor(`/stockMovement/createOutbound/${resp.id}`));
+            this.props.history.push(`/openboxes/stockMovement/createOutbound/${resp.id}`);
             this.props.nextPage({
               ...values,
               stockMovementId: resp.id,

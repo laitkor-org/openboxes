@@ -4,7 +4,6 @@ import PropTypes from 'prop-types';
 import Modal from 'react-modal';
 import { withRouter } from 'react-router-dom';
 
-import { stringUrlInterceptor } from 'utils/apiClient';
 import Translate from 'utils/Translate';
 
 import 'components/locations-configuration/SuccessMessage.scss';
@@ -42,13 +41,13 @@ const SuccessMessage = ({ setShowSuccessMessage, history, successMessageOpen }) 
                 defaultMessage="Create another location"
               />
             </button>
-            <button type="button" className="btn btn-outline-primary" onClick={() => { window.location = stringUrlInterceptor('/location/list'); }}>
+            <button type="button" className="btn btn-outline-primary" onClick={() => { window.location = '/openboxes/location/list'; }}>
               <Translate
                 id="react.locationsConfiguration.success.viewLocationList"
                 defaultMessage="View Location List"
               />
             </button>
-            <button type="button" className="btn btn-outline-primary" onClick={() => history.push('/productsConfiguration/index')}>
+            <button type="button" className="btn btn-outline-primary" onClick={() => history.push('/openboxes/productsConfiguration/index')}>
               <Translate
                 id="react.locationsConfiguration.success.createCategoriesAndProducts="
                 defaultMessage="Create Categories and Products"

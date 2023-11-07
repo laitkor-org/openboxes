@@ -9,7 +9,7 @@
  **/
 package org.pih.warehouse.core
 
-class Comment implements Comparable, Serializable {
+class Comment implements Serializable {
 
     String id
     String comment
@@ -36,8 +36,4 @@ class Comment implements Comparable, Serializable {
     }
 
     String toString() { return "$comment" }
-
-    int compareTo(obj) {
-        return obj.lastUpdated <=> lastUpdated
-    }
 }

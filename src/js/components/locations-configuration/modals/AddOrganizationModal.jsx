@@ -56,7 +56,7 @@ class AddOrganizationModal extends Component {
     if (values.name) {
       this.props.showSpinner();
 
-      const locationUrl = '/api/organizations';
+      const locationUrl = '/openboxes/api/organizations';
 
       const payload = {
         name: values.name,
@@ -82,7 +82,8 @@ class AddOrganizationModal extends Component {
     return (
       <Modal
         isOpen={this.props.isOpen}
-        className="modal-content"
+        overlayClassName="configuration-modal-overlay"
+        className="configuration-modal-content"
         shouldCloseOnOverlayClick={false}
       >
         <div>

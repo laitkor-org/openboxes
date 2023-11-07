@@ -108,7 +108,6 @@ class AddDestinationModal extends Component {
   componentDidMount() {
     this.props.fetchLocationTypes({ params: { activityCode: ActivityCode.DYNAMIC_CREATION } });
   }
-
   mapToOptionsList(list) {
     return _.map(list, locationType => ({
       ...locationType,
@@ -118,10 +117,10 @@ class AddDestinationModal extends Component {
 
   save(values) {
     this.props.showSpinner();
-    const url = '/api/locations?useDefaultActivities=true';
+    const url = '/openboxes/api/locations?useDefaultActivities=true';
 
     const { name, locationType, ...address } = values;
-    const payload = { name, locationType: _.get(locationType, 'id') || '' };
+    const payload = { name, 'locationType.id': _.get(locationType, 'id') || '' };
 
     apiClient.post(url, payload)
       .then((response) => {
@@ -132,7 +131,7 @@ class AddDestinationModal extends Component {
         this.props.onResponse(destination);
 
         if (!_.isEmpty(address)) {
-          const addressUrl = `/api/locations/${destination.id}`;
+          const addressUrl = `/openboxes/api/locations/${destination.id}`;
           return apiClient.post(addressUrl, flattenRequest({ address }));
         }
         return Promise.resolve();
@@ -151,7 +150,8 @@ class AddDestinationModal extends Component {
     return (
       <Modal
         isOpen={this.props.isOpen}
-        className="modal-content"
+        overlayClassName="configuration-modal-overlay"
+        className="configuration-modal-content"
         shouldCloseOnOverlayClick={false}
       >
         <div>
@@ -215,7 +215,7 @@ export default withRouter(connect(mapStateToProps, {
 AddDestinationModal.propTypes = {
   locale: PropTypes.string.isRequired,
   hideSpinner: PropTypes.func.isRequired,
-  isOpen: PropTypes.bool.isRequired,
+  isOpen: PropTypes.func.isRequired,
   onClose: PropTypes.func.isRequired,
   onResponse: PropTypes.func.isRequired,
   showSpinner: PropTypes.func.isRequired,

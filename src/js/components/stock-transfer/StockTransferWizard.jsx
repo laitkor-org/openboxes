@@ -83,7 +83,7 @@ class StockTransferWizard extends Component {
         },
       ];
     }
-    return [];
+    return '';
   }
 
   updateWizardValues(page, stockTransfer) {
@@ -96,7 +96,7 @@ class StockTransferWizard extends Component {
   fetchStockTransfer() {
     if (this.props.match.params.stockTransferId) {
       this.props.showSpinner();
-      const url = `/api/stockTransfers/${this.props.match.params.stockTransferId}`;
+      const url = `/openboxes/api/stockTransfers/${this.props.match.params.stockTransferId}`;
 
       apiClient.get(url)
         .then((response) => {

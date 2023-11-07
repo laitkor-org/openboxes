@@ -89,7 +89,6 @@ const ProductsListTable = ({
       Header: <Translate id="react.productsList.filters.catalog.label" defaultMessage="Formulary" />,
       accessor: 'productCatalogs',
       minWidth: 200,
-      sortable: false,
       Cell: row =>
         (<TableCell
           {...row}

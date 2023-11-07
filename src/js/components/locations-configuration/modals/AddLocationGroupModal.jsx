@@ -45,7 +45,7 @@ class AddLocationGroupModal extends Component {
     if (values.name) {
       this.props.showSpinner();
 
-      const locationUrl = '/api/locationGroups';
+      const locationUrl = '/openboxes/api/locationGroups';
 
       const payload = {
         name: values.name,
@@ -70,7 +70,8 @@ class AddLocationGroupModal extends Component {
     return (
       <Modal
         isOpen={this.props.isOpen}
-        className="modal-content"
+        overlayClassName="configuration-modal-overlay"
+        className="configuration-modal-content"
         shouldCloseOnOverlayClick={false}
       >
         <div>

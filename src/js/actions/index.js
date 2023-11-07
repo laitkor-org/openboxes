@@ -8,7 +8,6 @@ import {
   CHANGE_CURRENT_LOCALE,
   CHANGE_CURRENT_LOCATION,
   CLOSE_INFO_BAR,
-  FETCH_APPROVERS,
   FETCH_BUYERS,
   FETCH_CONFIG,
   FETCH_CONFIG_AND_SET_ACTIVE,
@@ -50,10 +49,9 @@ import {
 import genericApi from 'api/services/GenericApi';
 import locationApi from 'api/services/LocationApi';
 import purchaseOrderApi from 'api/services/PurchaseOrderApi';
-import userApi from 'api/services/UserApi';
-import RoleType from 'consts/roleType';
 import apiClient, { parseResponse } from 'utils/apiClient';
 import { mapShipmentTypes } from 'utils/option-utils';
+
 
 export function showSpinner() {
   return {
@@ -91,7 +89,7 @@ export function hideUserActions() {
 }
 
 export function fetchReasonCodes() {
-  const url = '/api/reasonCodes';
+  const url = '/openboxes/api/reasonCodes';
   return (dispatch) => {
     apiClient.get(url).then((res) => {
       dispatch({
@@ -103,7 +101,7 @@ export function fetchReasonCodes() {
 }
 
 export function fetchCurrencies() {
-  const url = '/api/unitOfMeasure/currencies';
+  const url = '/openboxes/api/unitOfMeasure/currencies';
   return (dispatch) => {
     apiClient.get(url).then((res) => {
       dispatch({
@@ -115,7 +113,7 @@ export function fetchCurrencies() {
 }
 
 export function fetchUsers() {
-  const url = '/api/persons';
+  const url = '/openboxes/api/persons';
   return (dispatch) => {
     apiClient.get(url, { params: { status: true } }).then((res) => {
       dispatch({
@@ -126,21 +124,8 @@ export function fetchUsers() {
   };
 }
 
-export const fetchAvailableApprovers = () => async (dispatch) => {
-  const response = await userApi.getUsersOptions({
-    params: {
-      roleTypes: RoleType.ROLE_REQUISITION_APPROVER,
-      active: true,
-    },
-  });
-  return dispatch({
-    type: FETCH_APPROVERS,
-    payload: response?.data?.data,
-  });
-};
-
 export async function fetchSessionInfo() {
-  const url = '/api/getAppContext';
+  const url = '/openboxes/api/getAppContext';
   const res = await apiClient.get(url);
 
   return (dispatch) => {
@@ -152,7 +137,7 @@ export async function fetchSessionInfo() {
 }
 
 export function fetchMenuConfig() {
-  const url = '/api/getMenuConfig';
+  const url = '/openboxes/api/getMenuConfig';
   return (dispatch) => {
     apiClient.get(url).then((res) => {
       dispatch({
@@ -165,7 +150,7 @@ export function fetchMenuConfig() {
 
 export function changeCurrentLocation(location) {
   return (dispatch) => {
-    const url = `/api/chooseLocation/${location.id}`;
+    const url = `/openboxes/api/chooseLocation/${location.id}`;
 
     return apiClient.put(url).then(() => {
       dispatch({
@@ -178,7 +163,7 @@ export function changeCurrentLocation(location) {
 
 export function fetchTranslations(lang, prefix) {
   return (dispatch) => {
-    const url = `/api/localizations?lang=${lang ||
+    const url = `/openboxes/api/localizations?lang=${lang ||
       ''}&prefix=react.${prefix || ''}`;
 
     apiClient.get(url).then((response) => {
@@ -196,7 +181,7 @@ export function fetchTranslations(lang, prefix) {
 
 export function changeCurrentLocale(locale) {
   return (dispatch) => {
-    const url = `/api/chooseLocale/${locale}`;
+    const url = `/openboxes/api/chooseLocale/${locale}`;
 
     apiClient.put(url).then(() => {
       dispatch({
@@ -410,10 +395,9 @@ export function reorderIndicators({ oldIndex, newIndex }, e, type) {
   };
 }
 
-// eslint-disable-next-line default-param-last
 export function fetchConfigAndData(locationId, config = 'personal', userId, id, filterSelected) {
   return (dispatch) => {
-    apiClient.get(`/api/dashboard/${id}/config`).then((res) => {
+    apiClient.get(`/openboxes/api/dashboard/${id}/config`).then((res) => {
       dispatch({
         type: FETCH_CONFIG_AND_SET_ACTIVE,
         payload: {
@@ -428,7 +412,7 @@ export function fetchConfigAndData(locationId, config = 'personal', userId, id, 
 
 export function fetchConfig(id) {
   return (dispatch) => {
-    apiClient.get(`/api/dashboard/${id}/config`).then((res) => {
+    apiClient.get(`/openboxes/api/dashboard/${id}/config`).then((res) => {
       dispatch({
         type: FETCH_CONFIG,
         payload: {
@@ -441,7 +425,7 @@ export function fetchConfig(id) {
 
 export function fetchPurchaseOrderStatuses() {
   return (dispatch) => {
-    apiClient.get('/api/orderSummaryStatus').then((res) => {
+    apiClient.get('/openboxes/api/orderSummaryStatus').then((res) => {
       dispatch({
         type: FETCH_PURCHASE_ORDER_STATUSES,
         payload: res.data.data,
@@ -460,7 +444,7 @@ export const fetchPaymentTerms = () => async (dispatch) => {
 
 export function fetchSuppliers(active = false) {
   return (dispatch) => {
-    apiClient.get(`/api/organizations?roleType=ROLE_SUPPLIER&active=${active}`)
+    apiClient.get(`/openboxes/api/organizations?roleType=ROLE_SUPPLIER&active=${active}`)
       .then((res) => {
         if (res.data.data) {
           const suppliers = res.data.data.map(obj => (
@@ -487,7 +471,7 @@ export function fetchSuppliers(active = false) {
 
 export function fetchBuyers(active = false) {
   return (dispatch) => {
-    apiClient.get(`/api/organizations?roleType=ROLE_BUYER&active=${active}`)
+    apiClient.get(`/openboxes/api/organizations?roleType=ROLE_BUYER&active=${active}`)
       .then((res) => {
         if (res.data.data) {
           const buyers = res.data.data.map(obj => (
@@ -514,7 +498,7 @@ export function fetchBuyers(active = false) {
 
 export function fetchInvoiceStatuses() {
   return (dispatch) => {
-    apiClient.get('/api/invoiceStatuses').then((res) => {
+    apiClient.get('/openboxes/api/invoiceStatuses').then((res) => {
       dispatch({
         type: FETCH_INVOICE_STATUSES,
         payload: res.data.data,
@@ -525,7 +509,7 @@ export function fetchInvoiceStatuses() {
 
 export function fetchInvoiceTypeCodes() {
   return (dispatch) => {
-    apiClient.get('/api/invoiceTypeCodes').then((res) => {
+    apiClient.get('/openboxes/api/invoiceTypeCodes').then((res) => {
       dispatch({
         type: FETCH_INVOICE_TYPE_CODES,
         payload: res.data.data,
@@ -536,7 +520,7 @@ export function fetchInvoiceTypeCodes() {
 
 export function fetchShipmentStatusCodes() {
   return (dispatch) => {
-    apiClient.get('/api/stockMovements/shipmentStatusCodes')
+    apiClient.get('/openboxes/api/stockMovements/shipmentStatusCodes')
       .then((res) => {
         dispatch({
           type: FETCH_SHIPMENT_STATUS_CODES,
@@ -546,22 +530,22 @@ export function fetchShipmentStatusCodes() {
   };
 }
 
-export function fetchRequisitionStatusCodes(sourceType = null) {
+
+export function fetchRequisitionStatusCodes() {
   return (dispatch) => {
-    apiClient.get('/api/stockMovements/requisitionsStatusCodes', {
-      params: { sourceType },
-    }).then((res) => {
-      dispatch({
-        type: FETCH_REQUISITION_STATUS_CODES,
-        payload: res.data.data,
+    apiClient.get('/openboxes/api/stockMovements/requisitionsStatusCodes')
+      .then((res) => {
+        dispatch({
+          type: FETCH_REQUISITION_STATUS_CODES,
+          payload: res.data.data,
+        });
       });
-    });
   };
 }
 
 export function fetchStockTransferStatuses() {
   return (dispatch) => {
-    apiClient.get('/api/stockTransfers/statusOptions').then((res) => {
+    apiClient.get('/openboxes/api/stockTransfers/statusOptions').then((res) => {
       dispatch({
         type: FETCH_STOCK_TRANSFER_STATUSES,
         payload: res.data.data,
@@ -669,3 +653,4 @@ export const hideInfoBarModal = name => ({
     name,
   },
 });
+

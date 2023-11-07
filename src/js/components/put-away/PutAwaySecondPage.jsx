@@ -12,9 +12,8 @@ import ReactTable from 'react-table';
 import { Tooltip } from 'react-tippy';
 
 import { hideSpinner, showSpinner } from 'actions';
-import { PUTAWAY_GENERATE_PDF } from 'api/urls';
 import SplitLineModal from 'components/put-away/SplitLineModal';
-import apiClient, { flattenRequest, parseResponse, stringUrlInterceptor } from 'utils/apiClient';
+import apiClient, { flattenRequest, parseResponse } from 'utils/apiClient';
 import customTreeTableHOC from 'utils/CustomTreeTable';
 import Filter from 'utils/Filter';
 import showLocationChangedAlert from 'utils/location-change-alert';
@@ -22,6 +21,7 @@ import Select from 'utils/Select';
 import Translate, { translateWithDefaultMessage } from 'utils/Translate';
 
 import 'react-table/react-table.css';
+
 
 const SelectTreeTable = (customTreeTableHOC(ReactTable));
 
@@ -70,7 +70,7 @@ class PutAwaySecondPage extends Component {
   componentWillReceiveProps(nextProps) {
     showLocationChangedAlert(
       this.props.translate, this.state.location, nextProps.location,
-      () => { window.location = stringUrlInterceptor('/order/list?orderType=PUTAWAY_ORDER&status=PENDING'); },
+      () => { window.location = '/openboxes/order/list?orderType=PUTAWAY_ORDER&status=PENDING'; },
     );
 
     const location = this.state.location.id ? this.state.location : nextProps.location;
@@ -300,7 +300,7 @@ class PutAwaySecondPage extends Component {
     if (this.props.match.params.putAwayId) {
       this.props.showSpinner();
 
-      const url = `/api/putaways/${this.props.match.params.putAwayId}`;
+      const url = `/openboxes/api/putaways/${this.props.match.params.putAwayId}`;
 
       apiClient.get(url)
         .then((response) => {
@@ -359,7 +359,7 @@ class PutAwaySecondPage extends Component {
    */
   fetchBins() {
     this.props.showSpinner();
-    const url = '/api/internalLocations';
+    const url = '/openboxes/api/internalLocations';
 
     const mapBins = bins => (_.chain(bins)
       .orderBy(['name'], ['asc']).value()
@@ -406,7 +406,7 @@ class PutAwaySecondPage extends Component {
    */
   savePutAways(putAwayToSave, callback) {
     this.props.showSpinner();
-    const url = `/api/putaways?location.id=${this.state.location.id}`;
+    const url = `/openboxes/api/putaways?location.id=${this.state.location.id}`;
 
     return apiClient.post(url, flattenRequest(putAwayToSave))
       .then((response) => {
@@ -449,7 +449,7 @@ class PutAwaySecondPage extends Component {
 
   deleteItem(itemIndex) {
     this.props.showSpinner();
-    const url = `/api/putawayItems/${_.get(this.state.putAway.putawayItems, `[${itemIndex}].id`)}`;
+    const url = `/openboxes/api/putawayItems/${_.get(this.state.putAway.putawayItems, `[${itemIndex}].id`)}`;
 
     apiClient.delete(url)
       .then(() => {
@@ -504,14 +504,13 @@ class PutAwaySecondPage extends Component {
    */
   generatePutAwayList() {
     this.props.showSpinner();
+    const url = '/openboxes/putAway/generatePdf';
     const { putawayNumber } = this.state.putAway;
 
-    return apiClient.get(
-      PUTAWAY_GENERATE_PDF(this.state.putAway.id),
-      { responseType: 'blob', params: { sortBy: this.state.sortBy } },
-    )
+    return apiClient.post(url, flattenRequest(this.state.putAway), { responseType: 'blob' })
       .then((response) => {
         fileDownload(response.data, `PutawayReport${putawayNumber ? `-${putawayNumber}` : ''}.pdf`, 'application/pdf');
+        this.fetchItems(this.state.sortBy);
         this.props.hideSpinner();
       })
       .catch(() => this.props.hideSpinner());
@@ -541,7 +540,7 @@ class PutAwaySecondPage extends Component {
   }
 
   fetchItems(sortBy) {
-    const url = `/api/putaways/${this.state.putAway.id}?sortBy=${sortBy}`;
+    const url = `/openboxes/api/putaways/${this.state.putAway.id}?sortBy=${sortBy}`;
     return apiClient.get(url)
       .then((response) => {
         const putawayItems = _.map(

@@ -97,14 +97,6 @@ class User extends Person {
     }
 
     /**
-     * @return does user have exact roles, either specified as global or location based
-     */
-    boolean hasRoles(Location location, List<RoleType> roleTypes) {
-        List userRoles = getEffectiveRoles(location)?.collect { it.roleType }
-        return roleTypes?.every { userRoles.contains(it) }
-    }
-
-    /**
      * @return all location role pairs for this user
      */
     def locationRolePairs() {

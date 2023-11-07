@@ -2,86 +2,57 @@ const path = require('path');
 
 const ROOT = path.resolve(__dirname, 'src');
 const SRC = path.resolve(ROOT, 'js');
-
-// this value is tightly coupled with src/js/index.jsx::__webpack_public_path__
-const WEBPACK_OUTPUT = path.resolve(ROOT, 'main/webapp/webpack');
-const TEMPLATES = path.resolve(ROOT, 'assets');
+const DEST = path.resolve(__dirname, 'web-app');
+const ASSETS = path.resolve(ROOT, 'assets');
+const JS_DEST = path.resolve(__dirname, 'web-app/js');
+const CSS_DEST = path.resolve(__dirname, 'web-app/css');
 const GRAILS_VIEWS = path.resolve(__dirname, 'grails-app/views');
 const COMMON_VIEW = path.resolve(GRAILS_VIEWS, 'common');
 const RECEIVING_VIEW = path.resolve(GRAILS_VIEWS, 'partialReceiving');
 
-const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
-const ESLintPlugin = require('eslint-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+const OptimizeCSSAssetsPlugin = require('optimize-css-assets-webpack-plugin');
+const CleanWebpackPlugin = require('clean-webpack-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
-const FileManagerPlugin = require('filemanager-webpack-plugin');
 
 module.exports = {
-    cache: true,
-    entry: {
-      app: `${SRC}/index.jsx`,
-    },
-    output: {
-      path: WEBPACK_OUTPUT,
-      /*
-       * Don't set publicPath here, because it's hard to know the
-       * application context at bundle time. Instead, we rely on
-       * __webpack_public_path__, specified in src/js/index.jsx, q.v.
-       */
-      filename: 'bundle.[hash].js',
-      chunkFilename: 'bundle.[hash].[name].js',
-    },
-    stats: {
-      colors: false,
-    },
-    plugins: [
-      new ESLintPlugin({}),
-      new FileManagerPlugin({
-        events: {
-          onStart: {
-            delete: [
-              WEBPACK_OUTPUT,
-            ],
-          },
-        },
+  entry: {
+    app: `${SRC}/index.jsx`,
+  },
+  output: {
+    path: DEST,
+    filename: 'js/bundle.[hash].js',
+    chunkFilename: 'js/bundle.[hash].[name].js',
+    publicPath: '/openboxes/',
+  },
+  stats: {
+    colors: true,
+  },
+  plugins: [
+    new MiniCssExtractPlugin({
+      filename: 'css/bundle.[hash].css',
+      chunkFilename: 'css/bundle.[hash].[name].css',
+    }),
+    new OptimizeCSSAssetsPlugin({}),
+    new CleanWebpackPlugin([`${JS_DEST}/bundle.**`, `${CSS_DEST}/bundle.**`]),
+    new HtmlWebpackPlugin({
+      filename: `${COMMON_VIEW}/_react.gsp`,
+      template: `${ASSETS}/grails-template.html`,
+      inject: false,
+      templateParameters: compilation => ({
+        jsSource: `\${createLinkTo(dir:'/js', file:'bundle.${compilation.hash}.js')}`,
+        cssSource: `\${createLinkTo(dir:'css/', file:'bundle.${compilation.hash}.css')}`,
+        receivingIfStatement: '',
       }),
-      new MiniCssExtractPlugin({
-        filename: 'bundle.[hash].css',
-        chunkFilename: 'bundle.[hash].[name].css',
-      }),
-      /*
-       * We use the HtmlWebpackPlugin to render templates to .gsp pages. In
-       * the templateParameters field, ${x} is a JavaScript variable expansion,
-       * while \${y} is exported literally as ${y} for Grails to later parse
-       * as a GString. Of particular note, the calls to resource() below depend
-       * on Grails' Resources plugin and can bypass the asset-pipeline entirely
-       * (OGBM-404); see the following document's advice beginning with
-       * "if you do not want to use the asset-pipeline plugin ..."
-       *
-       * https://gsp.grails.org/latest/guide/resources.html
-       */
-      new HtmlWebpackPlugin({
-        filename: `${COMMON_VIEW}/react.gsp`,
-        template: `${TEMPLATES}/grails-template.html`,
-        inject: false,
-        templateParameters: (compilation) => ({
-          // eslint-disable-next-line no-template-curly-in-string,no-useless-escape
-          contextPath: '\${util.ConfigHelper.contextPath}',
-          jsSource: `\${resource(dir: '${path.basename(WEBPACK_OUTPUT)}', file: 'bundle.${compilation.hash}.js')}`,
-          cssSource: `\${resource(dir: '${path.basename(WEBPACK_OUTPUT)}', file: 'bundle.${compilation.hash}.css')}`,
-          receivingIfStatement: '',
-        }),
-      }),
-      new HtmlWebpackPlugin({
-        filename: `${RECEIVING_VIEW}/create.gsp`,
-        template: `${TEMPLATES}/grails-template.html`,
-        inject: false,
-        templateParameters: (compilation) => ({
-          // eslint-disable-next-line no-template-curly-in-string,no-useless-escape
-          contextPath: '\${util.ConfigHelper.contextPath}',
-          jsSource: `\${resource(dir: '${path.basename(WEBPACK_OUTPUT)}', file: 'bundle.${compilation.hash}.js')}`,
-          cssSource: `\${resource(dir: '${path.basename(WEBPACK_OUTPUT)}', file: 'bundle.${compilation.hash}.css')}`,
-          receivingIfStatement:
+    }),
+    new HtmlWebpackPlugin({
+      filename: `${RECEIVING_VIEW}/_create.gsp`,
+      template: `${ASSETS}/grails-template.html`,
+      inject: false,
+      templateParameters: compilation => ({
+        jsSource: `\${createLinkTo(dir:'/js', file:'bundle.${compilation.hash}.js')}`,
+        cssSource: `\${createLinkTo(dir:'css/', file:'bundle.${compilation.hash}.css')}`,
+        receivingIfStatement:
           // eslint-disable-next-line no-template-curly-in-string
           '<g:if test="${!params.id}">' +
           'You can access the Partial Receiving feature through the details page for an inbound shipment.' +
@@ -92,16 +63,14 @@ module.exports = {
   module: {
     rules: [
       {
+        enforce: 'pre',
         test: /\.jsx?$/,
-        use: {
-          loader: 'babel-loader',
-          options: {
-            presets: [
-              '@babel/preset-env',
-              '@babel/react',
-            ]
-          },
-        },
+        exclude: /node_modules/,
+        loader: 'eslint-loader',
+      },
+      {
+        test: /\.jsx?$/,
+        use: ['cache-loader', 'babel-loader?presets[]=@babel/react&presets[]=@babel/env'],
         include: SRC,
         exclude: /node_modules/,
       },
@@ -111,41 +80,19 @@ module.exports = {
       },
       {
         test: /\.eot(\?v=\d+\.\d+\.\d+)?$/,
-        loader: 'file-loader',
-        options: {
-          name: './[hash].[ext]',
-          postTransformPublicPath: (p) => `__webpack_public_path__ + ${p}`,
-        },
+        loader: 'file-loader?name=./fonts/[hash].[ext]',
       },
       {
         test: /\.(woff|woff2)$/,
-        loader: 'url-loader',
-        options: {
-          limit: 5000,
-          name: './[hash].[ext]',
-          postTransformPublicPath: (p) => `__webpack_public_path__ + ${p}`,
-          prefix: 'font/'
-        },
+        loader: 'url-loader?prefix=font/&limit=5000&name=./fonts/[hash].[ext]',
       },
       {
         test: /\.ttf(\?v=\d+\.\d+\.\d+)?$/,
-        loader: 'url-loader',
-        options: {
-          limit: 10000,
-          mimetype: 'application/octet-stream',
-          name: './[hash].[ext]',
-          postTransformPublicPath: (p) => `__webpack_public_path__ + ${p}`,
-        },
+        loader: 'url-loader?limit=10000&mimetype=application/octet-stream&name=./fonts/[hash].[ext]',
       },
       {
         test: /\.svg(\?v=\d+\.\d+\.\d+)?$/,
-        loader: 'url-loader',
-        options: {
-          limit: 10000,
-          mimetype: 'image/svg+xml',
-          name: './[hash].[ext]',
-          postTransformPublicPath: (p) => `__webpack_public_path__ + ${p}`,
-        },
+        loader: 'url-loader?limit=10000&mimetype=image/svg+xml&name=./fonts/[hash].[ext]',
       },
       {
         test: /\.(png|jpg|gif)$/i,
@@ -158,12 +105,6 @@ module.exports = {
           },
         ],
       },
-    ],
-  },
-  optimization: {
-    minimizer: [
-      `...`,
-      new CssMinimizerPlugin(),
     ],
   },
   resolve: {

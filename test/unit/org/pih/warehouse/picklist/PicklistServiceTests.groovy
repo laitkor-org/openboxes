@@ -1,23 +1,16 @@
 package org.pih.warehouse.picklist
-
-import grails.test.GrailsUnitTestCase
-import org.pih.warehouse.core.Person
+import org.pih.warehouse.core.*
+import org.pih.warehouse.requisition.*
 import org.pih.warehouse.inventory.Inventory
 import org.pih.warehouse.inventory.InventoryItem
-// import InventoryService
-// import Transaction
+// import org.pih.warehouse.inventory.InventoryService
+// import org.pih.warehouse.inventory.Transaction
 import org.pih.warehouse.product.*
-// import grails.test.GrailsUnitTestCase
-import org.pih.warehouse.picklist.Picklist
-import org.pih.warehouse.picklist.PicklistItem
-import org.pih.warehouse.picklist.PicklistService
-import org.pih.warehouse.product.*
-import org.pih.warehouse.requisition.Requisition
-import org.pih.warehouse.requisition.RequisitionItem
+import grails.test.GrailsUnitTestCase
 import org.springframework.context.ApplicationEvent
 
 
-class PicklistServiceTests {
+class PicklistServiceTests extends GrailsUnitTestCase {
      void testCreateNewPicklist(){
         def requisition = new Requisition(id:"requisition1", name:"myTestRequisition")
         def picklistItem1 = [id:"", "requisitionItem.id":"ri1", "inventoryItem.id":"ii1", quantity:100]
@@ -33,7 +26,7 @@ class PicklistServiceTests {
         mockDomain(RequisitionItem, [])
         mockDomain(InventoryItem, [])
         PicklistItem.metaClass.publishEvent = { ApplicationEvent event -> }
-
+        
         def service = new PicklistService()
 
         def picklist = service.save(data)

@@ -41,7 +41,7 @@ class InventoryCommand implements Validateable {
 
     // all of the resulting ProductCommands above, organized by Category
     Boolean searchPerformed = Boolean.FALSE
-
+    
     Integer offset = 0
     Integer maxResults = 0
     Integer totalCount = 0

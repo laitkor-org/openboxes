@@ -35,7 +35,7 @@ import Spinner from 'components/spinner/Spinner';
 import { InfoBar, InfoBarConfigs } from 'consts/infoBar';
 import NotificationType from 'consts/notificationTypes';
 import RowSaveStatus from 'consts/rowSaveStatus';
-import apiClient, { stringUrlInterceptor } from 'utils/apiClient';
+import apiClient from 'utils/apiClient';
 import { renderFormField } from 'utils/form-utils';
 import RowSaveIconIndicator from 'utils/RowSaveIconIndicator';
 import Translate, { translateWithDefaultMessage } from 'utils/Translate';
@@ -367,7 +367,6 @@ class AddItemsPage extends Component {
     this.saveAndTransitionToNextStep = this.saveAndTransitionToNextStep.bind(this);
     this.shouldShowAutosaveFeatureBar = this.shouldShowAutosaveFeatureBar.bind(this);
     this.shouldCreateAutosaveFeatureBar = this.shouldCreateAutosaveFeatureBar.bind(this);
-    this.didUserConfirmAlert = false;
     this.debouncedSave = _.debounce(() => {
       this.saveRequisitionItemsInCurrentStep(this.state.values.lineItems, false);
     }, 1000);
@@ -438,12 +437,12 @@ class AddItemsPage extends Component {
       !item.statusCode &&
       parseInt(item.quantityRequested, 10) > 0 &&
       item.product);
+
     const lineItemsWithStatus = _.filter(lineItems, item => item.statusCode);
     const lineItemsToBeUpdated = [];
     _.forEach(lineItemsWithStatus, (item) => {
-      // We wouldn't update items with quantity requested < 0
-      if ((item.quantityRequested !== 0 && !item.quantityRequested) ||
-        parseInt(item.quantityRequested, 10) < 0) {
+      // We wouldn't update items with quantity requested <= 0
+      if (!item.quantityRequested || parseInt(item.quantityRequested, 10) <= 0) {
         return; // lodash continue
       }
       const oldItem = _.find(this.state.currentLineItems, old => old.id === item.id);
@@ -481,37 +480,31 @@ class AddItemsPage extends Component {
         }));
       }
 
-      // We want to delete items with 0 qty after first save using stock list
-      if (item.id && newQty === oldQty && oldQty === 0) {
-        lineItemsToBeUpdated.push(item);
-        return;
-      }
-
       if (
         (this.state.values.origin.type === 'SUPPLIER' || !this.state.values.hasManageInventory) &&
         (
           !_.isEqual(_.pick(item, keyIntersection), _.pick(oldItem, keyIntersection)) ||
           (item.product.id !== oldItem.product.id)
-        ) && item.id
+        )
       ) {
         lineItemsToBeUpdated.push(item);
-      } else if ((newQty !== oldQty || newRecipient !== oldRecipient) && item.id) {
+      } else if (newQty !== oldQty || newRecipient !== oldRecipient) {
         lineItemsToBeUpdated.push(item);
       }
     });
 
     const lineItemsToSave = [].concat(
       _.map(lineItemsToBeAdded, item => ({
-        product: { id: item.product.id },
+        'product.id': item.product.id,
         quantityRequested: item.quantityRequested,
-        recipient: { id: _.isObject(item.recipient) ? item.recipient.id || '' : item.recipient || '' },
+        'recipient.id': _.isObject(item.recipient) ? item.recipient.id || '' : item.recipient || '',
         sortOrder: item.sortOrder,
       })),
       _.map(lineItemsToBeUpdated, item => ({
         id: item.id,
-        product: { id: item.product.id },
+        'product.id': item.product.id,
         quantityRequested: item.quantityRequested,
-        recipient: { id: _.isObject(item.recipient) ? item.recipient.id || '' : item.recipient || '' },
+        'recipient.id': _.isObject(item.recipient) ? item.recipient.id || '' : item.recipient || '',
         sortOrder: item.sortOrder,
       })),
     );
@@ -547,22 +540,22 @@ class AddItemsPage extends Component {
 
   setLineItems(response, startIndex) {
     const { data } = response.data;
-    const lineItemsData = data.length ? _.map(data, val => ({ ...val, disabled: true })) :
-      new Array(1).fill({ sortOrder: 100, rowSaveStatus: RowSaveStatus.PENDING });
-    const sortOrder = _.toInteger(_.last(lineItemsData).sortOrder) + 100;
-    // check if stock list has items with qty 0
-    if (
-      this.props.isAutosaveEnabled &&
-      _.get(this.state.values.stocklist, 'id')
-    ) {
-      this.saveRequisitionItemsInCurrentStep(data, false);
+    let lineItemsData;
+
+    if (this.state.values.lineItems.length === 0 && !data.length) {
+      lineItemsData = new Array(1)
+        .fill({ sortOrder: 100, rowSaveStatus: RowSaveStatus.PENDING });
+    } else {
+      lineItemsData = _.map(data, val => ({ ...val, disabled: true }));
     }
+
+    const sortOrder = _.toInteger(_.last(lineItemsData).sortOrder) + 100;
     this.setState({
-      currentLineItems: startIndex !== null && this.props.isPaginated ?
+      currentLineItems: this.props.isPaginated ?
         _.uniqBy(_.concat(this.state.currentLineItems, data), 'id') : data,
       values: {
         ...this.state.values,
-        lineItems: startIndex !== null && this.props.isPaginated ?
+        lineItems: this.props.isPaginated ?
           _.uniqBy(_.concat(this.state.values.lineItems, lineItemsData), 'id') : lineItemsData,
       },
       sortOrder,
@@ -615,11 +608,7 @@ class AddItemsPage extends Component {
     const date = moment(this.props.minimumExpirationDate, 'MM/DD/YYYY');
 
     _.forEach(values.lineItems, (item, key) => {
-      if (
-        !_.isNil(item.product)
-        && ((item.quantityRequested !== 0 && !item.quantityRequested)
-          || item?.quantityRequested < 0)
-      ) {
+      if (!_.isNil(item.product) && (!item.quantityRequested || item.quantityRequested <= 0)) {
         errors.lineItems[key] = { quantityRequested: 'react.stockMovement.error.enterQuantity.label' };
       }
       if (!_.isEmpty(item.boxName) && _.isEmpty(item.palletName)) {
@@ -663,20 +652,12 @@ class AddItemsPage extends Component {
       buttons: [
         {
           label: this.props.translate('react.default.yes.label', 'Yes'),
-          onClick: () => {
-            this.didUserConfirmAlert = true;
-          },
+          onClick: onConfirm,
         },
         {
           label: this.props.translate('react.default.no.label', 'No'),
         },
       ],
-      afterClose: () => {
-        if (this.didUserConfirmAlert) {
-          onConfirm();
-          this.didUserConfirmAlert = false;
-        }
-      },
     });
   }
 
@@ -705,6 +686,24 @@ class AddItemsPage extends Component {
     });
   }
 
+  confirmSubmit(onConfirm) {
+    confirmAlert({
+      title: this.props.translate('react.stockMovement.message.confirmSubmit.label', 'Confirm submit'),
+      message: this.props.translate(
+        'react.stockMovement.confirmSubmit.message',
+        'Please confirm you are ready to submit your request. Once submitted, you cannot edit the request.',
+      ),
+      buttons: [
+        {
+          label: this.props.translate('react.default.goBack.label', 'Go back'),
+        },
+        {
+          label: this.props.translate('react.default.submit.label', 'Submit'),
+          onClick: onConfirm,
+        },
+      ],
+    });
+  }
 
   /**
    * Fetches all required data.
@@ -723,12 +722,12 @@ class AddItemsPage extends Component {
    * @public
    */
   fetchLineItems() {
-    const url = `/api/stockMovements/${this.state.values.stockMovementId}/stockMovementItems?stepNumber=2`;
+    const url = `/openboxes/api/stockMovements/${this.state.values.stockMovementId}/stockMovementItems?stepNumber=2`;
 
     return apiClient.get(url)
       .then((response) => {
         this.setState({
-          totalCount: response.data.data.length || 1,
+          totalCount: response.data.data.length,
         }, () => this.setLineItems(response, null));
       })
       .catch(err => err);
@@ -748,7 +747,7 @@ class AddItemsPage extends Component {
     } = this.props.savedStockMovement;
     const { stockMovementId } = this.state.values;
 
-    const url = `/api/stockMovements/${stockMovementId}`;
+    const url = `/openboxes/api/stockMovements/${stockMovementId}`;
     apiClient.get(url)
       .then((resp) => {
         const { hasManageInventory, statusCode, lastUpdated } = resp.data.data;
@@ -776,7 +775,7 @@ class AddItemsPage extends Component {
     this.setState({
       isFirstPageLoaded: true,
     });
-    const url = `/api/stockMovements/${this.state.values.stockMovementId}/stockMovementItems?offset=${startIndex}&max=${this.props.pageSize}&stepNumber=2`;
+    const url = `/openboxes/api/stockMovements/${this.state.values.stockMovementId}/stockMovementItems?offset=${startIndex}&max=${this.props.pageSize}&stepNumber=2`;
     apiClient.get(url)
       .then((response) => {
         this.setLineItems(response, startIndex);
@@ -804,9 +803,6 @@ class AddItemsPage extends Component {
       this.transitionToNextStep : this.saveAndTransitionToNextStep;
     const itemsMap = {};
     _.forEach(lineItems, (item) => {
-      if (parseInt(item.quantityRequested, 10) === 0) {
-        return;
-      }
       if (itemsMap[item.product.productCode]) {
         itemsMap[item.product.productCode].push(item);
       } else {
@@ -814,6 +810,7 @@ class AddItemsPage extends Component {
       }
     });
     const itemsWithSameCode = _.filter(itemsMap, item => item.length > 1);
+
     if (_.some(itemsMap, item => item.length > 1) && !(this.state.values.origin.type === 'SUPPLIER' || !this.state.values.hasManageInventory)) {
       this.confirmTransition(
         () => transitionFunction(formValues, lineItems),
@@ -847,7 +844,7 @@ class AddItemsPage extends Component {
    */
   saveRequisitionItems(lineItems) {
     const itemsToSave = this.getLineItemsToBeSaved(lineItems);
-    const updateItemsUrl = `/api/stockMovements/${this.state.values.stockMovementId}/updateItems`;
+    const updateItemsUrl = `/openboxes/api/stockMovements/${this.state.values.stockMovementId}/updateItems`;
     const payload = {
       id: this.state.values.stockMovementId,
       lineItems: itemsToSave,
@@ -872,7 +869,7 @@ class AddItemsPage extends Component {
     const filteredCandidates = itemCandidatesToSave
       .filter(item => item.rowSaveStatus !== RowSaveStatus.SAVING);
     const itemsToSave = this.getLineItemsToBeSaved(filteredCandidates);
-    const updateItemsUrl = `/api/stockMovements/${this.state.values.stockMovementId}/updateItems`;
+    const updateItemsUrl = `/openboxes/api/stockMovements/${this.state.values.stockMovementId}/updateItems`;
     const payload = {
       id: this.state.values.stockMovementId,
       lineItems: itemsToSave,
@@ -908,15 +905,6 @@ class AddItemsPage extends Component {
             // newly saved item to replace its equivalent in state
             const itemToChange = _.last(_.differenceBy(lineItemsBackendData, itemCandidatesToSave, 'id'));
             const lineItemsAfterSave = this.state.values.lineItems.map((item) => {
-              if (
-                parseInt(item.quantityRequested, 10) === 0 &&
-                (item.rowSaveStatus === RowSaveStatus.SAVING ||
-                  item.rowSaveStatus === RowSaveStatus.SAVED ||
-                  !item.rowSaveStatus) &&
-                !_.includes(savedItemsIds, item.id)
-              ) {
-                return { ..._.omit(item, ['id', 'statusCode']), disabled: true, rowSaveStatus: RowSaveStatus.SAVED };
-              }
               // In this case we check if we're editing item
               // We don't have to disable edited item, because this
               // line is disabled by default
@@ -938,7 +926,7 @@ class AddItemsPage extends Component {
 
             this.setState({
               values: { ...this.state.values, lineItems: lineItemsAfterSave },
-              currentLineItems: lineItemsBackendData,
+              currentLineItems: lineItemsAfterSave,
             });
             return;
           }
@@ -961,7 +949,7 @@ class AddItemsPage extends Component {
             // When there is an error during saving we have to find products which
             // caused the error. These items are not saved, so we don't have line ID,
             // and we have to find these items by product ID and SaveStatus
-            const notSavedItemsIds = payload.lineItems.map(item => item.product.id);
+            const notSavedItemsIds = payload.lineItems.map(item => item['product.id']);
             const lineItemsWithErrors = this.state.values.lineItems.map((item) => {
               if (
                 item.product &&
@@ -987,17 +975,6 @@ class AddItemsPage extends Component {
           return Promise.reject(new Error(this.props.translate('react.stockMovement.error.saveRequisitionItems.label', 'Could not save requisition items')));
         });
     }
-    this.setState(previousState => ({
-      values: {
-        ...previousState.values,
-        lineItems: previousState.values.lineItems.map((item) => {
-          if (parseInt(item.quantityRequested, 10) === 0) {
-            return { ...item, disabled: true, rowSaveStatus: RowSaveStatus.SAVED };
-          }
-          return item;
-        }),
-      },
-    }));
 
     return Promise.resolve();
   }
@@ -1021,10 +998,7 @@ class AddItemsPage extends Component {
         return { ...fieldValue, rowSaveStatus: RowSaveStatus.PENDING };
       }
 
-      if (
-        item.product && ((item.quantityRequested !== 0 && !item.quantityRequested) ||
-          parseInt(item.quantityRequested, 10) < 0)
-      ) {
+      if (item.product && (!item.quantityRequested || parseInt(item.quantityRequested, 10) <= 0)) {
         return { ...item, rowSaveStatus: RowSaveStatus.ERROR };
       }
 
@@ -1074,7 +1048,7 @@ class AddItemsPage extends Component {
     if (!errors.length) {
       this.saveRequisitionItemsInCurrentStep(formValues.lineItems)
         .then(() => {
-          window.location = stringUrlInterceptor(`/stockMovement/show/${formValues.stockMovementId}`);
+          window.location = `/openboxes/stockMovement/show/${formValues.stockMovementId}`;
         });
     } else {
       confirmAlert({
@@ -1086,7 +1060,7 @@ class AddItemsPage extends Component {
         buttons: [
           {
             label: this.props.translate('react.default.yes.label', 'Yes'),
-            onClick: () => { window.location = stringUrlInterceptor(`/stockMovement/show/${formValues.stockMovementId}`); },
+            onClick: () => { window.location = `/openboxes/stockMovement/show/${formValues.stockMovementId}`; },
           },
           {
             label: this.props.translate('react.default.no.label', 'No'),
@@ -1146,7 +1120,7 @@ class AddItemsPage extends Component {
    * @public
    */
   removeItem(itemId) {
-    const removeItemsUrl = `/api/stockMovementItems/${itemId}/removeItem`;
+    const removeItemsUrl = `/openboxes/api/stockMovementItems/${itemId}/removeItem`;
     const payload = { stockMovementId: this.state.values.stockMovementId };
 
     return apiClient.delete(removeItemsUrl, { data: payload })
@@ -1171,7 +1145,7 @@ class AddItemsPage extends Component {
    */
   removeAll() {
     actionInProgress = true;
-    const removeItemsUrl = `/api/stockMovements/${this.state.values.stockMovementId}/removeAllItems`;
+    const removeItemsUrl = `/openboxes/api/stockMovements/${this.state.values.stockMovementId}/removeAllItems`;
 
     return apiClient.delete(removeItemsUrl)
       .then(() => {
@@ -1201,7 +1175,7 @@ class AddItemsPage extends Component {
    * @public
    */
   transitionToNextStep({ values }) {
-    const url = `/api/stockMovements/${this.state.values.stockMovementId}/status`;
+    const url = `/openboxes/api/stockMovements/${this.state.values.stockMovementId}/status`;
     const payload = { status: 'REQUESTED' };
 
     this.props.showSpinner();
@@ -1240,7 +1214,7 @@ class AddItemsPage extends Component {
     this.props.showSpinner();
 
     const { movementNumber, stockMovementId } = formValues;
-    const url = `/stockMovement/exportCsv/${stockMovementId}`;
+    const url = `/openboxes/stockMovement/exportCsv/${stockMovementId}`;
     this.saveRequisitionItemsInCurrentStep(lineItems)
       .then(() => {
         apiClient.get(url, { responseType: 'blob' })
@@ -1279,7 +1253,7 @@ class AddItemsPage extends Component {
       },
     };
 
-    const url = `/stockMovement/importCsv/${stockMovementId}`;
+    const url = `/openboxes/stockMovement/importCsv/${stockMovementId}`;
 
     return apiClient.post(url, formData, config)
       .then(() => {
@@ -1407,7 +1381,7 @@ class AddItemsPage extends Component {
                 <button
                   type="button"
                   disabled={invalid}
-                  onClick={() => { window.location = stringUrlInterceptor('/stockMovement/list?direction=OUTBOUND'); }}
+                  onClick={() => { window.location = '/openboxes/stockMovement/list?direction=OUTBOUND'; }}
                   className="float-right mb-1 btn btn-outline-danger align-self-end btn-xs mr-2"
                 >
                   <span><i className="fa fa-sign-out pr-2" /><Translate id="react.default.button.exit.label" defaultMessage="Exit" /></span>
@@ -1445,7 +1419,7 @@ class AddItemsPage extends Component {
                     disabled={
                     invalid ||
                     showOnly ||
-                    _.some(values.lineItems, item => item.quantityRequested < 0)
+                    _.some(values.lineItems, item => item.quantityRequested <= 0)
                   }
                   // onClick -> onMouseDown (see comment for DELETE_BUTTON_FIELD)
                     onMouseDown={() => {
@@ -1488,8 +1462,7 @@ class AddItemsPage extends Component {
                     (values.lineItems.length === 1 && !('product' in values.lineItems[0])) ||
                     invalid ||
                     showOnly ||
-                    _.some(values.lineItems, item => item.quantityRequested < 0) ||
-                      _.every(values.lineItems, item => parseInt(item.quantityRequested, 10) === 0)
+                    _.some(values.lineItems, item => item.quantityRequested <= 0)
                   }
                   ><Translate id="react.default.button.next.label" defaultMessage="Next" />
                   </button>

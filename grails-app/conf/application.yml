@@ -210,7 +210,7 @@ slf4j.detectLoggerNameMismatch: true
 
 ---
 hibernate:
-    allow_update_outside_transaction: false
+    allow_update_outside_transaction: true
     cache:
         queries: false
         provider_class: org.hibernate.cache.EhCacheProvider
@@ -260,7 +260,7 @@ environments:
             logSlowQueries: true
             username: "openboxes"
             password: "openboxes"
-            url: jdbc:mysql://localhost:3306/openboxes?serverTimezone=UTC&useSSL=false
+            url: jdbc:mysql://localhost:3306/openboxes?serverTimezone=UTC&useSSL=false&allowPublicKeyRetrieval=true
     test:
         dataSource:
             dumpQueriesOnException: true
@@ -271,7 +271,7 @@ environments:
             logSlowQueries: false
             username: "openboxes"
             password: "openboxes"
-            url: jdbc:mysql://localhost:3306/openboxes?serverTimezone=UTC&useSSL=false
+            url: jdbc:mysql://localhost:3306/openboxes?serverTimezone=UTC&useSSL=false&allowPublicKeyRetrieval=true
     production:
         dataSource:
             dumpQueriesOnException: false
@@ -281,7 +281,7 @@ environments:
             logSlowQueries: false
             username: "openboxes"
             password: "openboxes"
-            url: jdbc:mysql://localhost:3306/openboxes?serverTimezone=UTC&useSSL=false
+            url: jdbc:mysql://localhost:3306/openboxes?serverTimezone=UTC&useSSL=false&allowPublicKeyRetrieval=true
 ---
 openboxes:
     ajaxRequest:
@@ -621,6 +621,12 @@ openboxes:
     cycleCount:
         additionalColumns: {}
 
+    purchasing:
+        approval:
+            enabled: false
+            minimumAmount: 0.00
+            defaultRoleTypes: ["ROLE_APPROVER"]
+
     api:
         pagination:
             enabled: true
@@ -684,3 +690,4 @@ uiperformance:
 #        'org.pih.warehouse.request',
 #        'org.pih.warehouse.shipment',
 #]
+

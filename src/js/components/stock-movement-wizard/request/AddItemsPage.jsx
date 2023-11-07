@@ -19,13 +19,9 @@ import ButtonField from 'components/form-elements/ButtonField';
 import LabelField from 'components/form-elements/LabelField';
 import ProductSelectField from 'components/form-elements/ProductSelectField';
 import TextField from 'components/form-elements/TextField';
-import notification from 'components/Layout/notifications/notification';
-import ActivityCode from 'consts/activityCode';
-import NotificationType from 'consts/notificationTypes';
-import RequisitionStatus from 'consts/requisitionStatus';
-import apiClient, { stringUrlInterceptor } from 'utils/apiClient';
+import apiClient from 'utils/apiClient';
 import { renderFormField } from 'utils/form-utils';
-import { isRequestFromWard, supports } from 'utils/supportedActivitiesUtils';
+import isRequestFromWard from 'utils/supportedActivitiesUtils';
 import Translate, { translateWithDefaultMessage } from 'utils/Translate';
 
 import 'react-confirm-alert/src/react-confirm-alert.css';
@@ -626,6 +622,7 @@ function calculateQuantityRequested(values, rowIndex, fieldValue, requestType) {
   return valuesWithUpdatedQtyRequested;
 }
 
+
 /**
  * The second step of stock movement where user can add items to stock list.
  * This component supports three different cases: with or without stocklist
@@ -661,8 +658,6 @@ class AddItemsPage extends Component {
     this.calculateQuantityRequested =
       calculateQuantityRequested.bind(this);
     this.cancelRequest = this.cancelRequest.bind(this);
-    this.save = this.save.bind(this);
-    this.saveAndExit = this.saveAndExit.bind(this);
   }
 
   componentDidMount() {
@@ -724,8 +719,6 @@ class AddItemsPage extends Component {
       const oldItem = _.find(this.state.currentLineItems, old => old.id === item.id);
       const oldQty = parseInt(oldItem.quantityRequested, 10);
       const newQty = parseInt(item.quantityRequested, 10);
-      const oldQtyOnHand = parseInt(oldItem.quantityOnHand, 10);
-      const newQtyOnHand = parseInt(newQty.quantityOnHand, 10);
       // Intersection of keys common to both objects (excluding product key)
       const keyIntersection = _.remove(
         _.intersection(
@@ -744,30 +737,25 @@ class AddItemsPage extends Component {
       ) {
         lineItemsToBeUpdated.push(item);
       } else if (newQty !== oldQty || !item.quantityRequested ||
-        (oldItem.comments !== item.comments && !_.isNil(item.comments))
-        || oldQtyOnHand !== newQtyOnHand) {
+        (oldItem.comments !== item.comments && !_.isNil(item.comments))) {
         lineItemsToBeUpdated.push(item);
       }
     });
 
-    const mapPropertiesOfItemsToBeAdded = (item) => {
-      const itemQuantityCounted = item.quantityOnHand ?
-        { quantityCounted: parseInt(item.quantityOnHand, 10) } : {};
-      return {
-        product: { id: item.product.id },
+    // Combine items to be added and items to be updated into one list to be saved
+    return [].concat(
+      _.map(lineItemsToBeAdded, item => ({
+        'product.id': item.product.id,
         quantityRequested: item.quantityRequested,
         sortOrder: item.sortOrder,
         comments: !_.isNil(item.comments) ? item.comments : '',
-        ...itemQuantityCounted,
-      };
-    };
-
-    // Combine items to be added and items to be updated into one list to be saved
-    return [].concat(
-      _.map(lineItemsToBeAdded, mapPropertiesOfItemsToBeAdded),
+      })),
       _.map(lineItemsToBeUpdated, item => ({
         id: item.id,
-        ...mapPropertiesOfItemsToBeAdded(item),
+        'product.id': item.product.id,
+        quantityRequested: item.quantityRequested,
+        sortOrder: item.sortOrder,
+        comments: !_.isNil(item.comments) ? item.comments : '',
       })),
     );
   }
@@ -785,7 +773,6 @@ class AddItemsPage extends Component {
     let lineItemsData;
 
     const isPullType = _.get(this.state.values.replenishmentType, 'name') === REPLENISHMENT_TYPE_PULL;
-    const isRequestOrigin = this.props.currentLocationId === this.state.values.origin.id;
 
     if (this.state.values.lineItems.length === 0 && !data.length) {
       lineItemsData = new Array(1).fill({ sortOrder: 100 });
@@ -807,7 +794,7 @@ class AddItemsPage extends Component {
 
           return {
             ...val,
-            quantityOnHand: val.quantityCounted,
+            quantityOnHand: '',
             disabled: true,
             quantityRequested: qtyRequested >= 0 ? qtyRequested : 0,
           };
@@ -824,8 +811,7 @@ class AddItemsPage extends Component {
             ...val,
             disabled: true,
             quantityRequested: qtyRequested >= 0 ? qtyRequested : 0,
-            quantityOnHand: this.state.isRequestFromWard || isRequestOrigin ?
-              val.quantityCounted : val.quantityOnHand,
+            quantityOnHand: this.state.isRequestFromWard ? '' : val.quantityOnHand,
           };
         },
       );
@@ -835,8 +821,7 @@ class AddItemsPage extends Component {
         val => ({
           ...val,
           disabled: true,
-          quantityOnHand: this.state.isRequestFromWard || isRequestOrigin ?
-            val.quantityCounted : val.quantityOnHand,
+          quantityOnHand: this.state.isRequestFromWard ? '' : val.quantityOnHand,
         }),
       );
     }
@@ -857,21 +842,6 @@ class AddItemsPage extends Component {
       }
       this.props.hideSpinner();
     });
-  }
-
-  inactiveProductValidation({ lineItems, callback }) {
-    const printError = (lineItem, idx) => `${idx + 1}: ${this.props.translate('react.stockMovement.product.label', 'Product')} ${lineItem?.productCode} 
-      ${this.props.translate('react.stockMovement.product.inactive.validation.label', 'has been discontinued. Please remove it from the requisition')}`;
-    const inactiveProducts = lineItems
-      .filter(lineItem => !lineItem.product?.active)
-      .map(printError);
-    if (inactiveProducts.length) {
-      return notification(NotificationType.ERROR_FILLED)({
-        message: this.props.translate('react.default.error.validationError.label', 'Validation error'),
-        detailsArray: inactiveProducts,
-      });
-    }
-    return callback();
   }
 
   updateTotalCount(value) {
@@ -896,6 +866,7 @@ class AddItemsPage extends Component {
     const errors = {};
     errors.lineItems = [];
     const date = moment(this.props.minimumExpirationDate, 'MM/DD/YYYY');
+
     _.forEach(values.lineItems, (item, key) => {
       const rowErrors = {};
       if (!_.isNil(item.product)) {
@@ -948,7 +919,7 @@ class AddItemsPage extends Component {
    */
   saveItemsAndExportTemplate(formValues, lineItems) {
     const { movementNumber, stockMovementId } = formValues;
-    const url = `/stockMovement/exportCsv/${stockMovementId}`;
+    const url = `/openboxes/stockMovement/exportCsv/${stockMovementId}`;
     this.props.showSpinner();
     return this.saveRequisitionItemsInCurrentStep(lineItems)
       .then(() => {
@@ -979,7 +950,7 @@ class AddItemsPage extends Component {
       },
     };
 
-    const url = `/stockMovement/importCsv/${stockMovementId}`;
+    const url = `/openboxes/stockMovement/importCsv/${stockMovementId}`;
 
     return apiClient.post(url, formData, config)
       .then(() => {
@@ -1007,7 +978,7 @@ class AddItemsPage extends Component {
       message: this.state.isRequestFromWard ?
         this.props.translate(
           'react.stockMovement.QOHWillNotBeSaved.message',
-          'If there are any empty or zero quantity lines, those lines will be deleted. Are you sure you want to proceed?',
+          'This save action won’t save the quantity on hand you have entered. You will have to reenter these when you came back to this request later. Also if there are any empty or zero quantity lines, those lines will be deleted. Are you sure you want to proceed?',
         )
         :
         this.props.translate(
@@ -1051,6 +1022,25 @@ class AddItemsPage extends Component {
     });
   }
 
+  confirmSubmit(onConfirm) {
+    confirmAlert({
+      title: this.props.translate('react.stockMovement.message.confirmSubmit.label', 'Confirm submit'),
+      message: this.props.translate(
+        'react.stockMovement.confirmSubmit.message',
+        'Please confirm you are ready to submit your request. Once submitted, you cannot edit the request.',
+      ),
+      buttons: [
+        {
+          label: this.props.translate('react.default.goBack.label', 'Go back'),
+        },
+        {
+          label: this.props.translate('react.default.submit.label', 'Submit'),
+          onClick: onConfirm,
+        },
+      ],
+    });
+  }
+
   /**
    * Fetches all required data.
    * @param {boolean} forceFetch
@@ -1072,7 +1062,7 @@ class AddItemsPage extends Component {
    * @public
    */
   fetchLineItems() {
-    const url = `/api/stockMovements/${this.state.values.stockMovementId}/stockMovementItems?stepNumber=2`;
+    const url = `/openboxes/api/stockMovements/${this.state.values.stockMovementId}/stockMovementItems?stepNumber=2`;
 
     return apiClient.get(url)
       .then((response) => {
@@ -1094,7 +1084,7 @@ class AddItemsPage extends Component {
    */
   fetchAddItemsPageData() {
     this.props.showSpinner();
-    const url = `/api/stockMovements/${this.state.values.stockMovementId}`;
+    const url = `/openboxes/api/stockMovements/${this.state.values.stockMovementId}`;
     apiClient.get(url)
       .then((resp) => {
         const { data: { hasManageInventory, statusCode }, totalCount } = resp.data;
@@ -1121,7 +1111,7 @@ class AddItemsPage extends Component {
     this.setState({
       isFirstPageLoaded: true,
     });
-    const url = `/api/stockMovements/${this.state.values.stockMovementId}/stockMovementItems?offset=${startIndex}&max=${this.props.pageSize}&stepNumber=2`;
+    const url = `/openboxes/api/stockMovements/${this.state.values.stockMovementId}/stockMovementItems?offset=${startIndex}&max=${this.props.pageSize}&stepNumber=2`;
     apiClient.get(url)
       .then((response) => {
         this.setLineItems(response, startIndex);
@@ -1212,7 +1202,7 @@ class AddItemsPage extends Component {
    */
   saveRequisitionItems(lineItems) {
     const itemsToSave = this.getLineItemsToBeSaved(lineItems);
-    const updateItemsUrl = `/api/stockMovements/${this.state.values.stockMovementId}/updateItems`;
+    const updateItemsUrl = `/openboxes/api/stockMovements/${this.state.values.stockMovementId}/updateItems`;
     const payload = {
       id: this.state.values.stockMovementId,
       lineItems: itemsToSave,
@@ -1228,15 +1218,11 @@ class AddItemsPage extends Component {
   }
 
   submitRequest(lineItems) {
-    const nonEmptyLineItems = _.filter(lineItems, val => !_.isEmpty(val) && val.product);
-    this.saveRequisitionItems(nonEmptyLineItems)
-      .then(() => {
-        if (supports(this.state.values.origin?.supportedActivities, ActivityCode.APPROVE_REQUEST)) {
-          this.transitionToNextStep(RequisitionStatus.PENDING_APPROVAL);
-        } else {
-          this.transitionToNextStep(RequisitionStatus.REQUESTED);
-        }
-      });
+    this.confirmSubmit(() => {
+      const nonEmptyLineItems = _.filter(lineItems, val => !_.isEmpty(val) && val.product);
+      this.saveRequisitionItems(nonEmptyLineItems)
+        .then(() => this.transitionToNextStep('REQUESTED'));
+    });
   }
 
   /**
@@ -1246,7 +1232,7 @@ class AddItemsPage extends Component {
    */
   saveRequisitionItemsInCurrentStep(itemCandidatesToSave) {
     const itemsToSave = this.getLineItemsToBeSaved(itemCandidatesToSave);
-    const updateItemsUrl = `/api/stockMovements/${this.state.values.stockMovementId}/updateItems`;
+    const updateItemsUrl = `/openboxes/api/stockMovements/${this.state.values.stockMovementId}/updateItems`;
     const payload = {
       id: this.state.values.stockMovementId,
       lineItems: itemsToSave,
@@ -1295,7 +1281,7 @@ class AddItemsPage extends Component {
           label: this.props.translate('react.default.yes.label', 'Yes'),
           onClick: () => {
             this.props.showSpinner();
-            apiClient.delete(`/api/stockMovements/${this.state.values.stockMovementId}`)
+            apiClient.delete(`/openboxes/api/stockMovements/${this.state.values.stockMovementId}`)
               .then((response) => {
                 if (response.status === 204) {
                   this.props.hideSpinner();
@@ -1331,11 +1317,11 @@ class AddItemsPage extends Component {
       this.props.showSpinner();
       return this.saveRequisitionItemsInCurrentStep(lineItems)
         .then(() => {
-          let redirectTo = '/stockMovement/list?direction=INBOUND';
+          let redirectTo = '/openboxes/stockMovement/list?direction=INBOUND';
           if (!this.props.supportedActivities.includes('MANAGE_INVENTORY') && this.props.supportedActivities.includes('SUBMIT_REQUEST')) {
-            redirectTo = '/dashboard';
+            redirectTo = '/openboxes/dashboard';
           }
-          window.location = stringUrlInterceptor(redirectTo);
+          window.location = redirectTo;
         })
         .catch(() => {
           this.props.hideSpinner();
@@ -1363,9 +1349,9 @@ class AddItemsPage extends Component {
           {
             label: this.props.translate('react.default.yes.label', 'Yes'),
             onClick: () => {
-              let redirectTo = stringUrlInterceptor('/stockMovement/list?direction=INBOUND');
+              let redirectTo = '/openboxes/stockMovement/list?direction=INBOUND';
               if (!this.props.supportedActivities.includes('MANAGE_INVENTORY') && this.props.supportedActivities.includes('SUBMIT_REQUEST')) {
-                redirectTo = stringUrlInterceptor('/dashboard');
+                redirectTo = '/openboxes/dashboard';
               }
               window.location = redirectTo;
             },
@@ -1424,7 +1410,7 @@ class AddItemsPage extends Component {
    * @public
    */
   removeItem(itemId) {
-    const removeItemsUrl = `/api/stockMovementItems/${itemId}/removeItem`;
+    const removeItemsUrl = `/openboxes/api/stockMovementItems/${itemId}/removeItem`;
 
     return apiClient.delete(removeItemsUrl)
       .catch(() => {
@@ -1438,7 +1424,7 @@ class AddItemsPage extends Component {
    * @public
    */
   removeAll() {
-    const removeItemsUrl = `/api/stockMovements/${this.state.values.stockMovementId}/removeAllItems`;
+    const removeItemsUrl = `/openboxes/api/stockMovements/${this.state.values.stockMovementId}/removeAllItems`;
 
     return apiClient.delete(removeItemsUrl)
       .then(() => {
@@ -1464,25 +1450,28 @@ class AddItemsPage extends Component {
    * @param {string} status
    * @public
    */
-  async transitionToNextStep(status) {
-    const url = `/api/stockMovements/${this.state.values.stockMovementId}/status`;
+  transitionToNextStep(status) {
+    const url = `/openboxes/api/stockMovements/${this.state.values.stockMovementId}/status`;
     const payload = { status };
     const { movementNumber } = this.state.values;
+
     if (this.state.values.statusCode === 'CREATED') {
-      await apiClient.post(url, payload);
+      return apiClient.post(url, payload)
+        .then(() => {
+          const translatedSubmitMessage = this.props.translate(
+            'react.stockMovement.request.submitMessage.label',
+            'Thank you for submitting your request. You can check the status of your request using stock movement number',
+          );
+          let redirectToURL = '';
+          if (!this.props.supportedActivities.includes('MANAGE_INVENTORY') && this.props.supportedActivities.includes('SUBMIT_REQUEST')) {
+            redirectToURL = '/openboxes/';
+          } else {
+            redirectToURL = '/openboxes/stockMovement/list?direction=INBOUND';
+          }
+          Alert.success(`${translatedSubmitMessage} ${movementNumber}`);
+          this.props.history.push(redirectToURL);
+        });
     }
-    const translatedSubmitMessage = this.props.translate(
-      'react.stockMovement.request.submitMessage.label',
-      'Thank you for submitting your request. You can check the status of your request using stock movement number',
-    );
-    let redirectToURL = '';
-    if (!this.props.supportedActivities.includes('MANAGE_INVENTORY') && this.props.supportedActivities.includes('SUBMIT_REQUEST')) {
-      redirectToURL = stringUrlInterceptor('/');
-    } else {
-      redirectToURL = stringUrlInterceptor('/stockMovement/list?direction=INBOUND');
-    }
-    Alert.success(`${translatedSubmitMessage} ${movementNumber}`);
-    this.props.history.push(redirectToURL);
     return Promise.resolve();
   }
 
@@ -1532,7 +1521,7 @@ class AddItemsPage extends Component {
   updateProductData(product, values, index) {
     if (product) {
       if (this.state.isRequestFromWard) {
-        const url = `/api/products/${product.id}/productDemand?originId=${this.state.values.origin.id}&destinationId=${this.state.values.destination.id}`;
+        const url = `/openboxes/api/products/${product.id}/productDemand?originId=${this.state.values.origin.id}&destinationId=${this.state.values.destination.id}`;
 
         apiClient.get(url)
           .then((response) => {
@@ -1553,7 +1542,7 @@ class AddItemsPage extends Component {
           })
           .catch(this.props.hideSpinner());
       } else {
-        const url = `/api/products/${product.id}/productAvailabilityAndDemand?locationId=${this.state.values.destination.id}`;
+        const url = `/openboxes/api/products/${product.id}/productAvailabilityAndDemand?locationId=${this.state.values.destination.id}`;
 
         apiClient.get(url)
           .then((response) => {
@@ -1594,7 +1583,6 @@ class AddItemsPage extends Component {
   }
 
   render() {
-    const { origin } = this.state.values;
     return (
       <Form
         onSubmit={() => {}}
@@ -1721,20 +1709,13 @@ class AddItemsPage extends Component {
                 </button>
                 <button
                   type="submit"
-                  onClick={() => this.inactiveProductValidation({
-                      lineItems: values.lineItems,
-                      callback: () => this.submitRequest(values.lineItems),
-                    })}
+                  onClick={() => this.submitRequest(values.lineItems)}
                   className="btn btn-outline-primary btn-form float-right btn-xs"
                   disabled={
                     invalid || !_.some(values.lineItems, item =>
                         item.product && _.parseInt(item.quantityRequested))
                   }
-                >
-                  {supports(origin?.supportedActivities, ActivityCode.APPROVE_REQUEST)
-                    ? <Translate id="react.default.button.submitForApproval.label" defaultMessage="Submit for approval" />
-                    : <Translate id="react.default.button.submitRequest.label" defaultMessage="Submit request" />
-                  }
+                ><Translate id="react.default.button.submitRequest.label" defaultMessage="Submit request" />
                 </button>
               </div>
             </form>

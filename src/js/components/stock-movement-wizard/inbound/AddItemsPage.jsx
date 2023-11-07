@@ -19,7 +19,7 @@ import DateField from 'components/form-elements/DateField';
 import ProductSelectField from 'components/form-elements/ProductSelectField';
 import SelectField from 'components/form-elements/SelectField';
 import TextField from 'components/form-elements/TextField';
-import apiClient, { stringUrlInterceptor } from 'utils/apiClient';
+import apiClient from 'utils/apiClient';
 import { renderFormField } from 'utils/form-utils';
 import Translate, { translateWithDefaultMessage } from 'utils/Translate';
 
@@ -276,32 +276,29 @@ class AddItemsPage extends Component {
         lineItemsToBeUpdated.push(item);
       } else if (newQty !== oldQty || newRecipient !== oldRecipient) {
         lineItemsToBeUpdated.push(item);
-      } else if (item.inventoryItem?.expirationDate && item.expirationDate &&
-        item.inventoryItem?.expirationDate !== item.expirationDate) {
-        lineItemsToBeUpdated.push(item);
       }
     });
 
     return [].concat(
       _.map(lineItemsToBeAdded, item => ({
-        product: { id: item.product.id },
+        'product.id': item.product.id,
         quantityRequested: item.quantityRequested,
         palletName: item.palletName,
         boxName: item.boxName,
         lotNumber: item.lotNumber,
         expirationDate: item.expirationDate,
-        recipient: { id: _.isObject(item.recipient) ? item.recipient.id || '' : item.recipient || '' },
+        'recipient.id': _.isObject(item.recipient) ? item.recipient.id || '' : item.recipient || '',
         sortOrder: item.sortOrder,
       })),
       _.map(lineItemsToBeUpdated, item => ({
         id: item.id,
-        product: { id: item.product.id },
+        'product.id': item.product.id,
         quantityRequested: item.quantityRequested,
         palletName: item.palletName,
         boxName: item.boxName,
         lotNumber: item.lotNumber,
         expirationDate: item.expirationDate,
-        recipient: { id: _.isObject(item.recipient) ? item.recipient.id || '' : item.recipient || '' },
+        'recipient.id': _.isObject(item.recipient) ? item.recipient.id || '' : item.recipient || '',
         sortOrder: item.sortOrder,
       })),
     );
@@ -506,7 +503,7 @@ class AddItemsPage extends Component {
    * @public
    */
   fetchLineItems() {
-    const url = `/api/stockMovements/${this.state.values.stockMovementId}/stockMovementItems?stepNumber=2`;
+    const url = `/openboxes/api/stockMovements/${this.state.values.stockMovementId}/stockMovementItems?stepNumber=2`;
 
     return apiClient.get(url)
       .then((response) => {
@@ -525,7 +522,7 @@ class AddItemsPage extends Component {
   fetchAddItemsPageData() {
     this.props.showSpinner();
 
-    const url = `/api/stockMovements/${this.state.values.stockMovementId}`;
+    const url = `/openboxes/api/stockMovements/${this.state.values.stockMovementId}`;
     apiClient.get(url)
       .then((resp) => {
         const { hasManageInventory } = resp.data.data;
@@ -547,7 +544,7 @@ class AddItemsPage extends Component {
     this.setState({
       isFirstPageLoaded: true,
     });
-    const url = `/api/stockMovements/${this.state.values.stockMovementId}/stockMovementItems?offset=${startIndex}&max=${this.props.pageSize}&stepNumber=2`;
+    const url = `/openboxes/api/stockMovements/${this.state.values.stockMovementId}/stockMovementItems?offset=${startIndex}&max=${this.props.pageSize}&stepNumber=2`;
     apiClient.get(url)
       .then((response) => {
         this.setLineItems(response, startIndex);
@@ -600,7 +597,7 @@ class AddItemsPage extends Component {
   saveAndTransitionToNextStep(formValues, lineItems) {
     this.props.showSpinner();
 
-    this.saveRequisitionItemsInCurrentStep(lineItems)
+    this.saveRequisitionItems(lineItems)
       .then((resp) => {
         let values = formValues;
         if (resp) {
@@ -631,7 +628,7 @@ class AddItemsPage extends Component {
    */
   updateInventoryItemsAndTransitionToNextStep(formValues, lineItems) {
     const itemsToSave = this.getLineItemsToBeSaved(lineItems);
-    const updateItemsUrl = `/api/stockMovements/${this.state.values.stockMovementId}/updateInventoryItems`;
+    const updateItemsUrl = `/openboxes/api/stockMovements/${this.state.values.stockMovementId}/updateInventoryItems`;
     const payload = {
       id: this.state.values.stockMovementId,
       lineItems: itemsToSave,
@@ -645,13 +642,34 @@ class AddItemsPage extends Component {
   }
 
   /**
+   * Saves list of stock movement items with post method.
+   * @param {object} lineItems
+   * @public
+   */
+  saveRequisitionItems(lineItems) {
+    const itemsToSave = this.getLineItemsToBeSaved(lineItems);
+    const updateItemsUrl = `/openboxes/api/stockMovements/${this.state.values.stockMovementId}/updateItems`;
+    const payload = {
+      id: this.state.values.stockMovementId,
+      lineItems: itemsToSave,
+    };
+
+    if (payload.lineItems.length) {
+      return apiClient.post(updateItemsUrl, payload)
+        .catch(() => Promise.reject(new Error('react.stockMovement.error.saveRequisitionItems.label')));
+    }
+
+    return Promise.resolve();
+  }
+
+  /**
    * Saves list of requisition items in current step (without step change). Used to export template.
    * @param {object} itemCandidatesToSave
    * @public
    */
   saveRequisitionItemsInCurrentStep(itemCandidatesToSave) {
     const itemsToSave = this.getLineItemsToBeSaved(itemCandidatesToSave);
-    const updateItemsUrl = `/api/stockMovements/${this.state.values.stockMovementId}/updateItems`;
+    const updateItemsUrl = `/openboxes/api/stockMovements/${this.state.values.stockMovementId}/updateItems`;
     const payload = {
       id: this.state.values.stockMovementId,
       lineItems: itemsToSave,
@@ -673,7 +691,6 @@ class AddItemsPage extends Component {
             currentLineItems: lineItemsBackendData,
             values: { ...this.state.values, lineItems: lineItemsBackendData },
           });
-          return resp;
         })
         .catch(() => Promise.reject(new Error(this.props.translate('react.stockMovement.error.saveRequisitionItems.label', 'Could not save requisition items'))));
     }
@@ -706,7 +723,7 @@ class AddItemsPage extends Component {
     if (errors.length && errors.every(obj => typeof obj === 'object' && _.isEmpty(obj))) {
       this.saveRequisitionItemsInCurrentStep(formValues.lineItems)
         .then(() => {
-          window.location = stringUrlInterceptor(`/stockMovement/show/${formValues.stockMovementId}`);
+          window.location = `/openboxes/stockMovement/show/${formValues.stockMovementId}`;
         });
     } else {
       confirmAlert({
@@ -718,7 +735,7 @@ class AddItemsPage extends Component {
         buttons: [
           {
             label: this.props.translate('react.default.yes.label', 'Yes'),
-            onClick: () => { window.location = stringUrlInterceptor(`/stockMovement/show/${formValues.stockMovementId}`); },
+            onClick: () => { window.location = `/openboxes/stockMovement/show/${formValues.stockMovementId}`; },
           },
           {
             label: this.props.translate('react.default.no.label', 'No'),
@@ -773,7 +790,7 @@ class AddItemsPage extends Component {
    * @public
    */
   removeItem(itemId) {
-    const removeItemsUrl = `/api/stockMovementItems/${itemId}/removeItem`;
+    const removeItemsUrl = `/openboxes/api/stockMovementItems/${itemId}/removeItem`;
 
     return apiClient.delete(removeItemsUrl)
       .catch(() => {
@@ -787,7 +804,7 @@ class AddItemsPage extends Component {
    * @public
    */
   removeAll() {
-    const removeItemsUrl = `/api/stockMovements/${this.state.values.stockMovementId}/removeAllItems`;
+    const removeItemsUrl = `/openboxes/api/stockMovements/${this.state.values.stockMovementId}/removeAllItems`;
 
     return apiClient.delete(removeItemsUrl)
       .then(() => {
@@ -813,7 +830,7 @@ class AddItemsPage extends Component {
    * @public
    */
   transitionToNextStep() {
-    const url = `/api/stockMovements/${this.state.values.stockMovementId}/status`;
+    const url = `/openboxes/api/stockMovements/${this.state.values.stockMovementId}/status`;
     const payload = { status: 'CHECKING' };
 
     if (this.state.values.statusCode === 'CREATED') {
@@ -860,7 +877,7 @@ class AddItemsPage extends Component {
     this.props.showSpinner();
 
     const { movementNumber, stockMovementId } = formValues;
-    const url = `/stockMovement/exportCsv/${stockMovementId}`;
+    const url = `/openboxes/stockMovement/exportCsv/${stockMovementId}`;
     this.saveRequisitionItemsInCurrentStep(lineItems)
       .then(() => {
         apiClient.get(url, { responseType: 'blob' })
@@ -890,7 +907,7 @@ class AddItemsPage extends Component {
       },
     };
 
-    const url = `/stockMovement/importCsv/${stockMovementId}`;
+    const url = `/openboxes/stockMovement/importCsv/${stockMovementId}`;
 
     return apiClient.post(url, formData, config)
       .then(() => {

@@ -233,9 +233,4 @@ class PurchaseOrderApiController {
 
         return csv
     }
-
-    def orderItemsDerivedStatus = {
-        Order order = Order.get(params.id)
-        render order?.getOrderItemsDerivedStatus() as JSON
-    }
 }

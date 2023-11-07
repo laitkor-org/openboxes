@@ -200,13 +200,13 @@ class EditPickModal extends Component {
   onSave(values) {
     this.props.showSpinner();
 
-    const picklistUrl = `/api/stockMovementItems/${this.state.attr.itemId}/updatePicklist`;
-    const itemsUrl = `/api/stockMovementItems/${this.state.attr.itemId}?stepNumber=4`;
+    const picklistUrl = `/openboxes/api/stockMovementItems/${this.state.attr.itemId}/updatePicklist`;
+    const itemsUrl = `/openboxes/api/stockMovementItems/${this.state.attr.itemId}?stepNumber=4`;
     const payload = {
       picklistItems: _.map(values.availableItems, avItem => ({
         id: avItem.id || '',
-        inventoryItem: { id: avItem['inventoryItem.id'] },
-        binLocation: { id: avItem['binLocation.id'] || '' },
+        'inventoryItem.id': avItem['inventoryItem.id'],
+        'binLocation.id': avItem['binLocation.id'] || '',
         quantityPicked: _.isNil(avItem.quantityPicked) ? '' : avItem.quantityPicked,
       })),
       reasonCode: values.reasonCode.value || '',
@@ -245,7 +245,7 @@ class EditPickModal extends Component {
   }
 
   fetchPickPageItem() {
-    const itemsUrl = `/api/stockMovementItems/${this.state.attr.itemId}/details?stepNumber=4`;
+    const itemsUrl = `/openboxes/api/stockMovementItems/${this.state.attr.itemId}/details?stepNumber=4`;
 
     apiClient.get(itemsUrl)
       .then((resp) => {

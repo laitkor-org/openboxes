@@ -29,6 +29,7 @@ Table "DATABASECHANGELOGLOCK" {
 Table "address" {
   "id" char(38) [pk, not null, default: ""]
   "version" bigint(20) [not null]
+  "tenant_id" char(38) [default: NULL]
   "address" varchar(255) [not null]
   "address2" varchar(255) [default: NULL]
   "city" varchar(255) [default: NULL]
@@ -106,11 +107,12 @@ Table "category" {
   "sort_order" int(11) [default: NULL]
   "is_root" tinyint(4) [default: NULL]
   "gl_account_id" char(38) [default: NULL]
+  "tenant_id" char(38) [default: NULL]
 
-Indexes {
-  parent_category_id [name: "FK302BCFE619A2EF8"]
-  gl_account_id [name: "fk_category_gl_account"]
-}
+  Indexes {
+    parent_category_id [name: "FK302BCFE619A2EF8"]
+    gl_account_id [name: "fk_category_gl_account"]
+  }
 }
 
 Table "click_stream" {
@@ -148,6 +150,7 @@ Table "comment" {
   "last_updated" datetime [not null]
   "recipient_id" char(38) [default: NULL]
   "sender_id" char(38) [default: NULL]
+  "tenant_id" char(38) [default: NULL]
 
 Indexes {
   recipient_id [name: "FK38A5EE5FF885F087"]
@@ -260,6 +263,7 @@ Indexes {
 Table "document" {
   "id" char(38) [pk, not null, default: ""]
   "version" bigint(20) [not null]
+  "tenant_id" char(38) [default: NULL]
   "content_type" varchar(255) [default: NULL]
   "date_created" datetime [not null]
   "document_number" varchar(255) [default: NULL]
@@ -271,9 +275,9 @@ Table "document" {
   "last_updated" datetime [not null]
   "name" varchar(255) [default: NULL]
 
-Indexes {
-  document_type_id [name: "FK335CD11B6631D8CC"]
-}
+  Indexes {
+    document_type_id [name: "FK335CD11B6631D8CC"]
+  }
 }
 
 Table "document_type" {
@@ -294,11 +298,13 @@ Table "donor" {
   "description" varchar(255) [default: NULL]
   "last_updated" datetime [default: NULL]
   "name" varchar(255) [not null]
+  "tenant_id" char(38) [default: NULL]
 }
 
 Table "event" {
   "id" char(38) [pk, not null, default: ""]
   "version" bigint(20) [not null]
+  "tenant_id" char(38) [default: NULL]
   "date_created" datetime [not null]
   "event_date" datetime [default: NULL]
   "event_location_id" char(38) [default: NULL]
@@ -413,6 +419,7 @@ Table "inventory" {
   "last_inventory_date" datetime [default: NULL]
   "date_created" datetime [default: NULL]
   "last_updated" datetime [default: NULL]
+  "tenant_id" char(38) [default: NULL]
 }
 
 Table "inventory_item" {
@@ -506,6 +513,7 @@ Table "invoice" {
   "created_by_id" char(38) [default: NULL]
   "updated_by_id" char(38) [default: NULL]
   "version" bigint(20) [not null]
+  "tenant_id" char(38) [default: NULL]
 
 Indexes {
   invoice_type_id [name: "fk_invoice_invoice_type"]
@@ -623,6 +631,7 @@ Table "location" {
   "location_number" varchar(255) [default: NULL]
   "description" varchar(255) [default: NULL]
   "organization_id" varchar(255) [default: NULL]
+  "tenant_id" char(38) [default: NULL]
 
 Indexes {
   address_id [name: "FK714F9FB561ED379F"]
@@ -671,6 +680,7 @@ Table "location_role" {
   "version" int(11) [default: NULL]
   "id" char(38) [default: NULL]
   "location_roles_idx" int(11) [default: NULL]
+  "tenant_id" char(38) [default: NULL]
 
 Indexes {
   location_id [name: "location_role_ibfk_3"]
@@ -697,6 +707,7 @@ Table "location_type" {
   "name" varchar(255) [not null]
   "sort_order" int(11) [default: NULL]
   "location_type_code" varchar(100) [default: NULL]
+  "tenant_id" char(38) [default: NULL]
 }
 
 Table "location_type_supported_activities" {
@@ -721,7 +732,7 @@ Table "order" {
   "id" char(38) [pk, not null, default: ""]
   "version" bigint(20) [not null]
   "date_created" datetime [default: NULL]
-  "date_ordered" datetime [default: NULL]
+  "date_ordered" varchar(255) [default: NULL]
   "description" varchar(255) [default: NULL]
   "destination_id" char(38) [default: NULL]
   "last_updated" datetime [default: NULL]
@@ -927,6 +938,8 @@ Table "party" {
   "description" varchar(255) [default: NULL]
   "name" varchar(255) [default: NULL]
   "default_location_id" char(38) [default: NULL]
+  "party_id" char(38) [default: NULL]
+  "tenant_id" char(38) [default: NULL]
 
 Indexes {
   party_type_id [name: "FK6581AE69DFE4C4C"]
@@ -939,6 +952,7 @@ Table "party_role" {
   "version" bigint(20) [not null]
   "end_date" datetime [default: NULL]
   "party_id" varchar(255) [not null]
+  "tenant_id" char(38) [default: NULL]
   "role_type" varchar(255) [not null]
   "start_date" datetime [default: NULL]
 
@@ -956,6 +970,7 @@ Table "party_type" {
   "last_updated" datetime [not null]
   "name" varchar(255) [not null]
   "party_type_code" varchar(255) [not null]
+  "tenant_id" char(38) [default: NULL]
 }
 
 Table "payment_method_type" {
@@ -990,6 +1005,14 @@ Table "person" {
   "last_name" varchar(255) [default: NULL]
   "last_updated" datetime [not null]
   "phone_number" varchar(255) [default: NULL]
+}
+
+Table "tenant" {
+  "id" char(38) [pk, not null, default: ""]
+  "version" bigint(20) [not null]
+  "date_created" datetime [not null]
+  "name" varchar(255) [default: NULL]
+  "last_updated" datetime [not null]
 }
 
 Table "picklist" {
@@ -1381,6 +1404,7 @@ Indexes {
 Table "product_supplier" {
   "id" varchar(255) [pk, not null]
   "version" bigint(20) [not null]
+  "tenant_id" char(38) [default: NULL]
   "brand_name" varchar(255) [default: NULL]
   "code" varchar(255) [default: NULL]
   "comments" varchar(255) [default: NULL]
@@ -2111,6 +2135,7 @@ Table "user" {
   "password" varchar(255) [default: NULL]
   "username" varchar(255) [default: NULL]
   "warehouse_id" char(38) [default: NULL]
+  "tenant_id" char(38) [default: NULL]
   "photo" mediumblob
   "locale" varchar(255) [default: NULL]
   "remember_last_location" bit(1) [default: NULL]
@@ -2579,6 +2604,38 @@ Ref:"person"."id" < "shipment"."carrier_id"
 Ref:"location"."id" < "shipment"."destination_id"
 
 Ref:"donor"."id" < "shipment"."donor_id"
+
+Ref:"tenant"."id" < "address"."tenant_id"
+
+Ref:"tenant"."id" < "user"."tenant_id"
+
+Ref:"tenant"."id" < "comment"."tenant_id"
+
+Ref:"tenant"."id" < "document"."tenant_id"
+
+Ref:"tenant"."id" < "event"."tenant_id"
+
+Ref:"tenant"."id" < "product_supplier"."tenant_id"
+
+Ref:"tenant"."id" < "category"."tenant_id"
+
+Ref:"tenant"."id" < "donor"."tenant_id"
+
+Ref:"tenant"."id" < "invoice"."tenant_id"
+
+Ref:"tenant"."id" < "inventory"."tenant_id"
+
+Ref:"tenant"."id" < "party"."tenant_id"
+
+Ref:"tenant"."id" < "party_type"."tenant_id"
+
+Ref:"tenant"."id" < "party_role"."tenant_id"
+
+Ref:"tenant"."id" < "location"."tenant_id"
+
+Ref:"tenant"."id" < "location_role"."tenant_id"
+
+Ref:"tenant"."id" < "location_type"."tenant_id"
 
 Ref:"location"."id" < "shipment"."origin_id"
 

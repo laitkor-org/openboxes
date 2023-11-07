@@ -303,6 +303,14 @@ class ReportController {
         render(template: "dataTableDialog", model: [url: url])
     }
 
+    def showShippingReport(ChecklistReportCommand command) {
+        command.rootCategory = productService.getRootCategory()
+        if (!command?.hasErrors()) {
+            reportService.generateShippingReport(command)
+        }
+        [command: command]
+    }
+
     def showPaginatedPackingListReport(ChecklistReportCommand command) {
         command.rootCategory = productService.getRootCategory()
         if (!command?.hasErrors()) {

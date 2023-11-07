@@ -159,13 +159,13 @@ class AdjustInventoryModal extends Component {
   onSave(values) {
     this.props.showSpinner();
 
-    const url = `/api/stockAdjustments?location.id=${this.props.locationId}`;
+    const url = `/openboxes/api/stockAdjustments?location.id=${this.props.locationId}`;
     const items = _.filter(values.adjustInventory, item => !_.isNil(item.quantityAdjusted) && item.quantityAdjusted !== '');
     const payload = _.map(items, (item) => {
       if (!item['inventoryItem.id']) {
         return {
           productId: item.productId,
-          binLocation: { id: item.binLocation || '' },
+          'binLocation.id': item.binLocation || '',
           lotNumber: item.lotNumber,
           expirationDate: item.expirationDate,
           quantityAdjusted: parseInt(item.quantityAdjusted, 10),
@@ -173,8 +173,8 @@ class AdjustInventoryModal extends Component {
         };
       }
       return {
-        inventoryItem: { id: item['inventoryItem.id'] || '' },
-        binLocation: { id: item['binLocation.id'] || '' },
+        'inventoryItem.id': item['inventoryItem.id'] || '',
+        'binLocation.id': item['binLocation.id'] || '',
         quantityAdjusted: parseInt(item.quantityAdjusted, 10),
         comments: item.comments,
       };

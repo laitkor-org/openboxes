@@ -457,6 +457,7 @@ class OrderService {
     boolean canApproveOrder(Order order, User userInstance) {
         if (isApprovalRequired(order)) {
             List<RoleType> defaultRoleTypes = grailsApplication.config.openboxes.purchasing.approval.defaultRoleTypes
+                    .collect { RoleType.valueOf(it) }
             return userService.hasAnyRoles(userInstance, defaultRoleTypes)
         }
         return Boolean.TRUE
@@ -1040,7 +1041,7 @@ class OrderService {
 
     def canOrderItemBeEdited(OrderItem orderItem, User user) {
         def isPending = orderItem?.order?.status == OrderStatus.PENDING
-        def isApprover = userService.hasRolePurchaseApprover(user)
+        def isApprover = userService.hasRoleApprover(user)
 
         return isPending?:isApprover
     }
@@ -1066,7 +1067,7 @@ class OrderService {
     }
 
     def canManageAdjustments(Order order, User user) {
-        return order.status == OrderStatus.PENDING || order?.status >= OrderStatus.PLACED && userService.hasRolePurchaseApprover(user)
+        return order.status == OrderStatus.PENDING || order?.status >= OrderStatus.PLACED && userService.hasRoleApprover(user)
     }
 
     def getOrderSummaryList(Map params) {
@@ -1286,34 +1287,5 @@ class OrderService {
             RefreshOrderSummaryJob.triggerNow()
             return false
         }
-    }
-
-    Map getOrderSummary(String orderId) {
-        Order order = Order.get(orderId)
-        def orderItems = order?.orderItems
-        return [
-            isPurchaseOrder: order.isPurchaseOrder,
-            isPutawayOrder: order.isPutawayOrder,
-            orderItems: orderItems,
-            hasSupplierCode: orderItems?.any { it.productSupplier?.supplierCode },
-            hasManufacturerName: orderItems?.any { it.productSupplier?.manufacturerName },
-            hasManufacturerCode: orderItems?.any { it.productSupplier?.manufacturerCode },
-            currencyCode: order.currencyCode ?: grailsApplication.config.openboxes.locale.defaultCurrencyCode,
-            subtotal: order.subtotal,
-            totalAdjustments: order.totalAdjustments,
-            total: order.total,
-        ]
-    }
-
-    Map getOrderItemStatus(String orderId) {
-        Order order = Order.get(orderId)
-        def orderItems = order?.listOrderItems()
-        return [
-            isPurchaseOrder: order.isPurchaseOrder,
-            isPutawayOrder: order.isPutawayOrder,
-            orderItems: orderItems,
-            currencyCode: order.currencyCode ?: grailsApplication.config.openboxes.locale.defaultCurrencyCode,
-            total: order.total,
-        ]
     }
 }

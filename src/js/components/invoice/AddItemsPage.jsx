@@ -8,13 +8,12 @@ import { Form } from 'react-final-form';
 import { connect } from 'react-redux';
 
 import { hideSpinner, showSpinner } from 'actions';
-import { ORDER_SHOW, STOCK_MOVEMENT_SHOW } from 'api/urls';
 import ArrayField from 'components/form-elements/ArrayField';
 import ButtonField from 'components/form-elements/ButtonField';
 import LabelField from 'components/form-elements/LabelField';
 import TextField from 'components/form-elements/TextField';
 import InvoiceItemsModal from 'components/invoice/InvoiceItemsModal';
-import apiClient, { stringUrlInterceptor } from 'utils/apiClient';
+import apiClient from 'utils/apiClient';
 import { renderFormField } from 'utils/form-utils';
 import { getInvoiceDescription } from 'utils/form-values-utils';
 import accountingFormat from 'utils/number-utils';
@@ -72,7 +71,7 @@ const FIELDS = {
           const orderId = values && values.invoiceItems
               && values.invoiceItems[rowIndex]
               && values.invoiceItems[rowIndex].orderId;
-          return { url: orderId ? ORDER_SHOW(orderId) : '' };
+          return { url: orderId ? `/openboxes/order/show/${orderId}` : '' };
         },
       },
       shipmentNumber: {
@@ -84,7 +83,7 @@ const FIELDS = {
           const shipmentId = values && values.invoiceItems
               && values.invoiceItems[rowIndex]
               && values.invoiceItems[rowIndex].shipmentId;
-          return { url: shipmentId ? STOCK_MOVEMENT_SHOW(shipmentId) : '' };
+          return { url: shipmentId ? `/openboxes/stockMovement/show/${shipmentId}` : '' };
         },
       },
       budgetCode: {
@@ -229,7 +228,7 @@ class AddItemsPage extends Component {
     this.setState({
       isFirstPageLoaded: true,
     });
-    const url = `/api/invoices/${this.state.values.id}/items?offset=${startIndex}&max=${this.props.pageSize}`;
+    const url = `/openboxes/api/invoices/${this.state.values.id}/items?offset=${startIndex}&max=${this.props.pageSize}`;
     apiClient.get(url)
       .then((response) => {
         this.setInvoiceItems(response, startIndex);
@@ -271,7 +270,7 @@ class AddItemsPage extends Component {
    * @public
    */
   saveInvoiceItems(values) {
-    const url = `/api/invoices/${this.state.values.id}/items`;
+    const url = `/openboxes/api/invoices/${this.state.values.id}/items`;
     const payload = {
       id: values.id,
       invoiceItems: _.map(values.invoiceItems, item => ({
@@ -314,7 +313,7 @@ class AddItemsPage extends Component {
    * @public
    */
   removeItem(itemId, values, index) {
-    const removeItemsUrl = `/api/invoices/${itemId}/removeItem`;
+    const removeItemsUrl = `/openboxes/api/invoices/${itemId}/removeItem`;
     const item = values.invoiceItems[index];
     const newTotalValue = parseFloat(this.state.values.totalValue) - parseFloat(item.totalAmount);
     return apiClient.delete(removeItemsUrl)
@@ -340,7 +339,7 @@ class AddItemsPage extends Component {
   saveAndExit(formValues) {
     this.saveInvoiceItems(formValues)
       .then(() => {
-        window.location = stringUrlInterceptor(`/invoice/show/${formValues.id}`);
+        window.location = `/openboxes/invoice/show/${formValues.id}`;
       })
       .catch(() => this.props.hideSpinner());
   }

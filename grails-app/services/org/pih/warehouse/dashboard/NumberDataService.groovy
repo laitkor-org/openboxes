@@ -33,17 +33,12 @@ class NumberDataService {
 
         def requisitionShipmentCount = Requisition.executeQuery("""
                     SELECT COUNT(*) FROM Requisition r 
-                        JOIN r.shipments s 
-                        WHERE r.origin = :location 
-                        AND s.currentStatus = 'PENDING' 
-                        AND r.status NOT IN (:statuses)
-                        AND r.createdBy = :user
+                    JOIN r.shipments s 
+                    WHERE r.origin = :location 
+                    AND s.currentStatus = 'PENDING' 
+                    AND r.createdBy = :user
                 """,
-                [
-                        'location': location,
-                        'user': user,
-                        'statuses' : [RequisitionStatus.PENDING_APPROVAL, RequisitionStatus.REJECTED],
-                ]).get(0)
+                ['location': location, 'user': user]).get(0)
 
         def returnOrderShipmentCount = Order.executeQuery("""
                     SELECT COUNT(DISTINCT o.id) FROM Order o
@@ -178,13 +173,7 @@ class NumberDataService {
                 [
                         'location': location,
                         'sourceType' : RequisitionSourceType.ELECTRONIC,
-                        'statuses' : [
-                                RequisitionStatus.CREATED,
-                                RequisitionStatus.ISSUED,
-                                RequisitionStatus.CANCELED,
-                                RequisitionStatus.PENDING_APPROVAL,
-                                RequisitionStatus.REJECTED,
-                        ],
+                        'statuses' : [RequisitionStatus.CREATED, RequisitionStatus.ISSUED, RequisitionStatus.CANCELED],
                 ])
 
         return new NumberData(openStockRequests[0], "/openboxes/stockMovement/list?direction=OUTBOUND&sourceType=ELECTRONIC")

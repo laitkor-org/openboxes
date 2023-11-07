@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 
+import axios from 'axios';
 import arrayMutators from 'final-form-arrays';
 import update from 'immutability-helper';
 import fileDownload from 'js-file-download';
@@ -20,17 +21,17 @@ import TableRowWithSubfields from 'components/form-elements/TableRowWithSubfield
 import EditPickModal from 'components/stock-movement-wizard/modals/EditPickModal';
 import AlertMessage from 'utils/AlertMessage';
 import {
-  apiClientCustomResponseHandler as apiClient,
+  flattenRequest,
+  handleError,
   handleSuccess,
-  handleValidationErrors,
   parseResponse,
-  stringUrlInterceptor,
 } from 'utils/apiClient';
 import { renderFormField } from 'utils/form-utils';
 import { formatProductDisplayName, matchesProductCodeOrName } from 'utils/form-values-utils';
 import Translate, { translateWithDefaultMessage } from 'utils/Translate';
 
 import 'react-confirm-alert/src/react-confirm-alert.css';
+
 
 const FIELDS = {
   pickPageItems: {
@@ -183,7 +184,7 @@ const FIELDS = {
         getDynamicAttr: ({
           fieldValue, revertUserPick, subfield, showOnly,
         }) => ({
-          onClick: _.get(fieldValue, 'requisitionItem.id') ? () => revertUserPick(_.get(fieldValue, 'requisitionItem.id')) : () => null,
+          onClick: flattenRequest(fieldValue)['requisitionItem.id'] ? () => revertUserPick(flattenRequest(fieldValue)['requisitionItem.id']) : () => null,
           hidden: subfield,
           disabled: showOnly,
         }),
@@ -194,6 +195,8 @@ const FIELDS = {
     },
   },
 };
+
+const apiClient = axios.create({});
 
 /* eslint class-methods-use-this: ["error",{ "exceptMethods": ["checkForInitialPicksChanges"] }] */
 /**
@@ -223,9 +226,9 @@ class PickPage extends Component {
     this.isRowLoaded = this.isRowLoaded.bind(this);
     this.loadMoreRows = this.loadMoreRows.bind(this);
     this.recreatePicklist = this.recreatePicklist.bind(this);
-    this.setState = this.setState.bind(this);
+    this.handleValidationErrors = this.handleValidationErrors.bind(this);
 
-    apiClient.interceptors.response.use(handleSuccess, handleValidationErrors(this.setState));
+    apiClient.interceptors.response.use(handleSuccess, this.handleValidationErrors);
   }
 
   componentDidMount() {
@@ -336,7 +339,7 @@ class PickPage extends Component {
    * @public
    */
   fetchPickPageData() {
-    const url = `/api/stockMovements/${this.state.values.stockMovementId}?stepNumber=4`;
+    const url = `/openboxes/api/stockMovements/${this.state.values.stockMovementId}?stepNumber=4`;
 
     return apiClient.get(url)
       .then((resp) => {
@@ -356,7 +359,7 @@ class PickPage extends Component {
   }
 
   fetchPickPageItems() {
-    const url = `/api/stockMovements/${this.state.values.stockMovementId}/stockMovementItems?stepNumber=4`;
+    const url = `/openboxes/api/stockMovements/${this.state.values.stockMovementId}/stockMovementItems?stepNumber=4`;
     apiClient.get(url)
       .then((response) => {
         this.setPickPageItems(response, null);
@@ -364,7 +367,7 @@ class PickPage extends Component {
   }
 
   fetchItemsAfterImport() {
-    const url = `/api/stockMovements/${this.state.values.stockMovementId}/stockMovementItems?stepNumber=4`;
+    const url = `/openboxes/api/stockMovements/${this.state.values.stockMovementId}/stockMovementItems?stepNumber=4`;
     apiClient.get(url)
       .then((response) => {
         const { data } = response.data;
@@ -386,7 +389,7 @@ class PickPage extends Component {
       this.setState({
         isFirstPageLoaded: true,
       });
-      const url = `/api/stockMovements/${this.state.values.stockMovementId}/stockMovementItems?offset=${startIndex}&max=${this.props.pageSize}&stepNumber=4`;
+      const url = `/openboxes/api/stockMovements/${this.state.values.stockMovementId}/stockMovementItems?offset=${startIndex}&max=${this.props.pageSize}&stepNumber=4`;
       apiClient.get(url)
         .then((response) => {
           this.setPickPageItems(response, startIndex);
@@ -399,7 +402,7 @@ class PickPage extends Component {
   }
 
   fetchAdjustedItems(adjustedProductCode) {
-    apiClient.post(`/api/stockMovements/${this.state.values.stockMovementId}/updateAdjustedItems?adjustedProduct=${adjustedProductCode}`)
+    apiClient.post(`/openboxes/api/stockMovements/${this.state.values.stockMovementId}/updateAdjustedItems?adjustedProduct=${adjustedProductCode}`)
       .then((resp) => {
         const { pickPageItems } = resp.data.data.pickPage;
 
@@ -420,7 +423,7 @@ class PickPage extends Component {
    * @public
    */
   transitionToNextStep() {
-    const url = `/api/stockMovements/${this.state.values.stockMovementId}/status`;
+    const url = `/openboxes/api/stockMovements/${this.state.values.stockMovementId}/status`;
     const payload = { status: 'PICKED' };
 
     if (this.state.values.statusCode !== 'PICKED' && this.state.values.statusCode !== 'PACKED') {
@@ -430,8 +433,19 @@ class PickPage extends Component {
   }
 
   validatePicklist() {
-    const url = `/api/stockMovements/${this.state.values.stockMovementId}/validatePicklist`;
+    const url = `/openboxes/api/stockMovements/${this.state.values.stockMovementId}/validatePicklist`;
     return apiClient.get(url);
+  }
+
+  handleValidationErrors(error) {
+    if (error.response.status === 400) {
+      const alertMessage = _.join(_.get(error, 'response.data.errorMessages', ''), ' ');
+      this.setState({ alertMessage, showAlert: true });
+
+      return Promise.reject(error);
+    }
+
+    return handleError(error);
   }
 
   validateReasonCodes(lineItems) {
@@ -502,8 +516,8 @@ class PickPage extends Component {
   revertUserPick(itemId) {
     this.props.showSpinner();
 
-    const createPicklistUrl = `/api/stockMovementItems/${itemId}/createPicklist`;
-    const itemsUrl = `/api/stockMovementItems/${itemId}?stepNumber=4`;
+    const createPicklistUrl = `/openboxes/api/stockMovementItems/${itemId}/createPicklist`;
+    const itemsUrl = `/openboxes/api/stockMovementItems/${itemId}?stepNumber=4`;
 
     apiClient.post(createPicklistUrl)
       .then(() => {
@@ -547,7 +561,7 @@ class PickPage extends Component {
     this.props.showSpinner();
 
     const { movementNumber, stockMovementId } = formValues;
-    const url = `/api/stockMovements/exportPickListItems/${stockMovementId}`;
+    const url = `/openboxes/api/stockMovements/exportPickListItems/${stockMovementId}`;
 
     apiClient.get(url, { responseType: 'blob' })
       .then((response) => {
@@ -570,7 +584,7 @@ class PickPage extends Component {
       },
     };
 
-    const url = `/api/stockMovements/importPickListItems/${stockMovementId}`;
+    const url = `/openboxes/api/stockMovements/importPickListItems/${stockMovementId}`;
 
     return apiClient.post(url, formData, config)
       .then(() => {
@@ -583,7 +597,7 @@ class PickPage extends Component {
   }
 
   recreatePicklist() {
-    const url = `/api/stockMovements/createPickList/${this.state.values.stockMovementId}`;
+    const url = `/openboxes/api/stockMovements/createPickList/${this.state.values.stockMovementId}`;
     this.props.showSpinner();
 
     apiClient.get(url)
@@ -675,7 +689,7 @@ class PickPage extends Component {
                 </button>
                 <button
                   type="button"
-                  onClick={() => { window.location = stringUrlInterceptor(`/stockMovement/show/${values.stockMovementId}`); }}
+                  onClick={() => { window.location = `/openboxes/stockMovement/show/${values.stockMovementId}`; }}
                   className="float-right mb-1 btn btn-outline-secondary align-self-end btn-xs ml-1"
                 >
                   <span><i className="fa fa-sign-out pr-2" /><Translate id="react.default.button.saveAndExit.label" defaultMessage="Save and exit" /></span>
@@ -692,7 +706,7 @@ class PickPage extends Component {
                 :
               <button
                 type="button"
-                onClick={() => { window.location = stringUrlInterceptor('/stockMovement/list?type=REQUEST'); }}
+                onClick={() => { window.location = '/openboxes/stockMovement/list?direction=OUTBOUND'; }}
                 className="float-right mb-1 btn btn-outline-danger align-self-end btn-xs mr-2"
               >
                 <span><i className="fa fa-sign-out pr-2" /> <Translate id="react.default.button.exit.label" defaultMessage="Exit" /> </span>

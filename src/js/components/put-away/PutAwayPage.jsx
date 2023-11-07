@@ -8,7 +8,7 @@ import ReactTable from 'react-table';
 import selectTableHOC from 'react-table/lib/hoc/selectTable';
 
 import { hideSpinner, showSpinner } from 'actions';
-import apiClient, { parseResponse, stringUrlInterceptor } from 'utils/apiClient';
+import apiClient, { flattenRequest, parseResponse } from 'utils/apiClient';
 import customTreeTableHOC from 'utils/CustomTreeTable';
 import Filter from 'utils/Filter';
 import Select from 'utils/Select';
@@ -163,7 +163,7 @@ class PutAwayPage extends Component {
    */
   fetchPutAwayCandidates(locationId) {
     this.props.showSpinner();
-    const url = `/api/putaways?location.id=${locationId}`;
+    const url = `/openboxes/api/putaways?location.id=${locationId}`;
 
     return apiClient.get(url)
       .then((response) => {
@@ -191,18 +191,18 @@ class PutAwayPage extends Component {
    */
   createPutAway() {
     this.props.showSpinner();
-    const url = `/api/putaways?location.id=${this.props.locationId}`;
+    const url = `/openboxes/api/putaways?location.id=${this.props.locationId}`;
     const items = _.filter(this.state.putawayItems, item =>
       _.includes([...this.state.selection], item._id));
     const payload = {
       putawayNumber: '',
-      putawayAssignee: '',
+      'putawayAssignee.id': '',
       putawayStatus: 'PENDING',
       putawayDate: '',
       putawayItems: _.map(items, item => ({ ...item, putawayStatus: 'PENDING' })),
     };
 
-    return apiClient.post(url, payload)
+    return apiClient.post(url, flattenRequest(payload))
       .then((response) => {
         const putAway = parseResponse(response.data.data);
         this.props.hideSpinner();
@@ -212,7 +212,7 @@ class PutAwayPage extends Component {
           _.forEach(this.state.putawayItems, (item, index) => { expanded[index] = true; });
         }
 
-        this.props.history.push(stringUrlInterceptor(`/putAway/create/${putAway.id}`));
+        this.props.history.push(`/openboxes/putAway/create/${putAway.id}`);
         this.props.nextPage({
           putAway,
           pivotBy: this.state.pivotBy,

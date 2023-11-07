@@ -50,7 +50,7 @@ class InvoiceWizard extends Component {
   get wizardTitle() {
     const { values } = this.state;
     if (!values.invoiceNumber) {
-      return [];
+      return '';
     }
     return [
       {
@@ -97,7 +97,7 @@ class InvoiceWizard extends Component {
   fetchInitialValues() {
     if (this.props.match.params.invoiceId) {
       this.props.showSpinner();
-      const url = `/api/invoices/${this.props.match.params.invoiceId}`;
+      const url = `/openboxes/api/invoices/${this.props.match.params.invoiceId}`;
       apiClient.get(url)
         .then((response) => {
           const values = {

@@ -7,7 +7,6 @@ import { getTranslate } from 'react-localize-redux';
 import { connect } from 'react-redux';
 
 import { hideSpinner, showSpinner } from 'actions';
-import { ORDER_SHOW, STOCK_MOVEMENT_SHOW } from 'api/urls';
 import ArrayField from 'components/form-elements/ArrayField';
 import LabelField from 'components/form-elements/LabelField';
 import ModalWrapper from 'components/form-elements/ModalWrapper';
@@ -53,7 +52,7 @@ const FIELDS = {
           const orderId = values && values.invoiceItems
               && values.invoiceItems[rowIndex]
               && values.invoiceItems[rowIndex].orderId;
-          return { url: orderId ? ORDER_SHOW(orderId) : '' };
+          return { url: orderId ? `/openboxes/order/show/${orderId}` : '' };
         },
       },
       shipmentNumber: {
@@ -65,7 +64,7 @@ const FIELDS = {
           const shipmentId = values && values.invoiceItems
               && values.invoiceItems[rowIndex]
               && values.invoiceItems[rowIndex].shipmentId;
-          return { url: shipmentId ? STOCK_MOVEMENT_SHOW(shipmentId) : '' };
+          return { url: shipmentId ? `/openboxes/stockMovement/show/${shipmentId}` : '' };
         },
       },
       budgetCode: {
@@ -208,7 +207,7 @@ class InvoiceItemsModal extends Component {
         quantityToInvoice: _.toInteger(item.quantityToInvoice),
       })),
     };
-    const url = `/api/invoices/${invoiceId}/items`;
+    const url = `/openboxes/api/invoices/${invoiceId}/items`;
 
     apiClient.post(url, payload)
       .then(() => {
@@ -294,7 +293,7 @@ class InvoiceItemsModal extends Component {
     const { selectedOrderNumbers, selectedShipmentNumbers, selectedInvoiceItems } = this.state;
     const { invoiceId } = this.props;
 
-    const url = `/api/invoices/${invoiceId}/invoiceItemCandidates`;
+    const url = `/openboxes/api/invoices/${invoiceId}/invoiceItemCandidates`;
 
     const payload = {
       orderNumbers: _.map(selectedOrderNumbers, orderNumber => orderNumber.value),
@@ -320,7 +319,7 @@ class InvoiceItemsModal extends Component {
 
   fetchOrderNumbers(invoiceId) {
     if (this.state.orderNumberOptions.length === 0) {
-      const url = `/api/invoices/${invoiceId}/orders`;
+      const url = `/openboxes/api/invoices/${invoiceId}/orders`;
       apiClient.get(url)
         .then((resp) => {
           this.setState({
@@ -334,7 +333,7 @@ class InvoiceItemsModal extends Component {
 
   fetchShipmentNumbers(invoiceId) {
     if (this.state.shipmentNumberOptions.length === 0) {
-      const url = `/api/invoices/${invoiceId}/shipments`;
+      const url = `/openboxes/api/invoices/${invoiceId}/shipments`;
       apiClient.get(url)
         .then((resp) => {
           this.setState({

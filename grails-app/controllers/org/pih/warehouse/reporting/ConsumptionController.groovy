@@ -10,12 +10,16 @@
 package org.pih.warehouse.reporting
 
 import grails.converters.JSON
+import grails.core.GrailsApplication
 import grails.gorm.transactions.Transactional
+import grails.util.Holders
 import grails.validation.Validateable
 import groovy.time.TimeCategory
 import org.apache.commons.codec.digest.DigestUtils
 import org.apache.commons.collections.FactoryUtils
 import org.apache.commons.collections.list.LazyList
+import org.grails.core.DefaultGrailsDomainClass
+import org.grails.datastore.mapping.model.PersistentEntity
 import org.pih.warehouse.core.Constants
 import org.pih.warehouse.core.Location
 import org.pih.warehouse.core.Tag
@@ -62,7 +66,7 @@ class ConsumptionController {
         command.transactionTypes = command.defaultTransactionTypes
 
         // If any parameters have changed we need to reset filters
-        if (command.parametersHash && command.hasParameterChanged()) {
+        if (command.hasParameterChanged()) {
             command.selectedProperties = []
             command.selectedTags = []
             command.selectedLocations = []
@@ -313,13 +317,13 @@ class ConsumptionController {
                         'Category'                                    : row.product?.category?.name,
                         'Formulary'                                   : row.product?.productCatalogsToString(),
                         'Tag'                                         : row.product?.tagsToString(),
-                        'Unit Price'                                  : g.formatNumber(number: row.pricePerUnit, format: '###.#', maxFractionDigits: 4) ?: '',
+                        'Unit Price'                                  : g.formatNumber(number: row.pricePerUnit, format: '###.#', maxFractionDigits: 2) ?: '',
                         'UoM'                                         : row.product.unitOfMeasure ?: '',
                         'Qty Issued'                                  : g.formatNumber(number: row.issuedQuantity, format: '###.#', maxFractionDigits: 1) ?: '',
                         'Qty Consumed'                                : g.formatNumber(number: row.consumedQuantity, format: '###.#', maxFractionDigits: 1) ?: '',
                         'Qty Returned'                                : g.formatNumber(number: row.returnedQuantity, format: '###.#', maxFractionDigits: 1) ?: '',
                         'Total Consumption (Issued+Consumed-Returned)': g.formatNumber(number: row.totalConsumptionQuantity, format: '###.#', maxFractionDigits: 1) ?: '',
-                        'Value Consumed'                              : g.formatNumber(number: valueConsumed, format: '###.#', maxFractionDigits: 2),
+                        'Value Consumed'                              : g.formatNumber(number: valueConsumed, format: '###.#', maxFractionDigits: 1),
                         'Average Monthly Consumption'                 : g.formatNumber(number: row.monthlyQuantity, format: '###.#', maxFractionDigits: 4) ?: '',
                         'Quantity on hand'                            : g.formatNumber(number: row.onHandQuantity, format: '###.#', maxFractionDigits: 1) ?: '',
                         'Months remaining'                            : g.formatNumber(number: row.numberOfMonthsRemaining, format: '###.#', maxFractionDigits: 0) ?: '',
@@ -484,7 +488,7 @@ class ShowConsumptionCommand implements Validateable {
     Boolean includeMonthlyBreakdown = Boolean.TRUE
     Boolean includeQuantityOnHand = Boolean.TRUE
 
-    List<String> selectedProperties = LazyList.decorate(new ArrayList(), FactoryUtils.instantiateFactory(String.class))
+    def selectedProperties = LazyList.decorate(new ArrayList(), FactoryUtils.instantiateFactory(String.class))
 
     // Payload
     Set<Transaction> debits = []
@@ -505,15 +509,16 @@ class ShowConsumptionCommand implements Validateable {
         parametersHash(nullable: true)
     }
 
+    def getAvailableProperties() {
+        Holders.grailsApplication.mappingContext.getPersistentEntity(Product.class.name).persistentPropertyNames
+    }
+
     Boolean hasParameterChanged() {
         String newParametersHash = generateParametersHash()
         return !parametersHash.equals(newParametersHash)
     }
 
     String generateParametersHash() {
-        if (!fromDate && !toDate && !fromLocations) {
-            return null
-        }
         String parameters = "${fromDate}:${toDate}:${fromLocations}"
         return DigestUtils.md5Hex(parameters.bytes)
     }

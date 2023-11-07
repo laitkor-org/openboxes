@@ -11,7 +11,7 @@ import { Tooltip } from 'react-tippy';
 
 import { fetchTranslations, hideSpinner, showSpinner } from 'actions';
 import EmailModal from 'components/stock-list-management/EmailModal';
-import apiClient, { flattenRequest, parseResponse, stringUrlInterceptor } from 'utils/apiClient';
+import apiClient, { flattenRequest, parseResponse } from 'utils/apiClient';
 import Input from 'utils/Input';
 import Select from 'utils/Select';
 import Translate, { translateWithDefaultMessage } from 'utils/Translate';
@@ -81,7 +81,7 @@ class StocklistManagement extends Component {
 
   fetchUsers() {
     this.props.showSpinner();
-    const url = '/api/persons';
+    const url = '/openboxes/api/persons';
 
     apiClient.get(url, { params: { status: true } })
       .then((response) => {
@@ -92,7 +92,7 @@ class StocklistManagement extends Component {
 
   fetchData() {
     this.props.showSpinner();
-    const url = `/api/stocklistItems?product.id=${this.props.match.params.productId || ''}`;
+    const url = `/openboxes/api/stocklistItems?product.id=${this.props.match.params.productId || ''}`;
 
     apiClient.get(url)
       .then((response) => {
@@ -103,7 +103,7 @@ class StocklistManagement extends Component {
 
   fetchAvailableStocklists() {
     this.props.showSpinner();
-    const url = '/api/stocklistItems/availableStocklists';
+    const url = '/openboxes/api/stocklistItems/availableStocklists';
 
     apiClient.get(url)
       .then((response) => {
@@ -117,7 +117,7 @@ class StocklistManagement extends Component {
 
   fetchProductInfo() {
     this.props.showSpinner();
-    const url = `/api/products/${this.props.match.params.productId}/withCatalogs`;
+    const url = `/openboxes/api/products/${this.props.match.params.productId}/withCatalogs`;
 
     apiClient.get(url)
       .then((response) => {
@@ -174,10 +174,10 @@ class StocklistManagement extends Component {
   }
 
   saveItem(index, item) {
-    let url = `/api/stocklistItems?product.id=${this.props.match.params.productId || ''}`;
+    let url = `/openboxes/api/stocklistItems?product.id=${this.props.match.params.productId || ''}`;
 
     if (!item.new) {
-      url = `/api/stocklistItems/${item.id}`;
+      url = `/openboxes/api/stocklistItems/${item.id}`;
     }
 
     apiClient.post(url, flattenRequest(item))
@@ -200,7 +200,7 @@ class StocklistManagement extends Component {
       this.removeItem(index);
     } else {
       this.props.showSpinner();
-      const url = `/api/stocklistItems/${item.id}`;
+      const url = `/openboxes/api/stocklistItems/${item.id}`;
 
       apiClient.delete(url)
         .then(() => {
@@ -234,7 +234,7 @@ class StocklistManagement extends Component {
             <div className="align-self-center">
               <button
                 className="btn btn-outline-primary btn-xs"
-                onClick={() => { window.location = stringUrlInterceptor(`/inventoryItem/showStockCard/${this.state.productInfo.id}`); }}
+                onClick={() => { window.location = `/openboxes/inventoryItem/showStockCard/${this.state.productInfo.id}`; }}
               ><Translate id="react.stockListManagement.returnStockCard.label" defaultMessage="Return to stock card" />
               </button>
             </div>
@@ -315,7 +315,7 @@ class StocklistManagement extends Component {
                 }
 
                 return (
-                  <a href={stringUrlInterceptor(`/requisitionTemplate/show/${original.stocklistId}`)}>
+                  <a href={`/openboxes/requisitionTemplate/show/${original.stocklistId}`}>
                     <Tooltip
                       title={original.name}
                       theme="transparent"
@@ -536,13 +536,13 @@ class StocklistManagement extends Component {
                     <a
                       className="btn btn-outline-secondary btn-xs mr-1"
                       disabled={original.edit || original.new}
-                      href={stringUrlInterceptor(`/stocklist/renderPdf/${original.stocklistId}`)}
+                      href={`/openboxes/stocklist/renderPdf/${original.stocklistId}`}
                     ><Translate id="react.default.button.printPdf.label" defaultMessage="Print PDF" />
                     </a>
                     <a
                       className="btn btn-outline-secondary btn-xs mr-1"
                       disabled={original.edit || original.new}
-                      href={stringUrlInterceptor(`/stocklist/generateCsv/${original.stocklistId}`)}
+                      href={`/openboxes/stocklist/generateCsv/${original.stocklistId}`}
                     ><Translate id="react.default.button.printXls.label" defaultMessage="Print XLS" />
                     </a>
                     {original.manager ?

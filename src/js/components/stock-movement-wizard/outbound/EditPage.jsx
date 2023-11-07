@@ -20,7 +20,7 @@ import TableRowWithSubfields from 'components/form-elements/TableRowWithSubfield
 import TextField from 'components/form-elements/TextField';
 import DetailsModal from 'components/stock-movement-wizard/modals/DetailsModal';
 import SubstitutionsModal from 'components/stock-movement-wizard/modals/SubstitutionsModal';
-import apiClient, { stringUrlInterceptor } from 'utils/apiClient';
+import apiClient from 'utils/apiClient';
 import { renderFormField } from 'utils/form-utils';
 import { formatProductDisplayName, matchesProductCodeOrName, showOutboundEditValidationErrors } from 'utils/form-values-utils';
 import Translate, { translateWithDefaultMessage } from 'utils/Translate';
@@ -467,7 +467,7 @@ class EditItemsPage extends Component {
   }
 
   fetchItems() {
-    const url = `/api/stockMovements/${this.state.values.stockMovementId}/stockMovementItems?stepNumber=3`;
+    const url = `/openboxes/api/stockMovements/${this.state.values.stockMovementId}/stockMovementItems?stepNumber=3`;
     apiClient.get(url)
       .then((response) => {
         this.setEditPageItems(response, null);
@@ -482,7 +482,7 @@ class EditItemsPage extends Component {
    * @public
    */
   fetchEditPageItems() {
-    const url = `/api/stockMovements/${this.state.values.stockMovementId}/stockMovementItems?stepNumber=3`;
+    const url = `/openboxes/api/stockMovements/${this.state.values.stockMovementId}/stockMovementItems?stepNumber=3`;
     apiClient.get(url)
       .then((response) => {
         const { data } = response.data;
@@ -517,7 +517,7 @@ class EditItemsPage extends Component {
       this.setState({
         isFirstPageLoaded: true,
       });
-      const url = `/api/stockMovements/${this.state.values.stockMovementId}/stockMovementItems?offset=${startIndex}&max=${this.props.pageSize}&stepNumber=3`;
+      const url = `/openboxes/api/stockMovements/${this.state.values.stockMovementId}/stockMovementItems?offset=${startIndex}&max=${this.props.pageSize}&stepNumber=3`;
       apiClient.get(url)
         .then((response) => {
           this.setEditPageItems(response, startIndex);
@@ -572,7 +572,7 @@ class EditItemsPage extends Component {
       values: updatedValues,
     });
 
-    const url = `/api/stockMovements/${this.state.values.stockMovementId}/reviseItems`;
+    const url = `/openboxes/api/stockMovements/${this.state.values.stockMovementId}/reviseItems`;
     const payload = {
       lineItems: _.map(itemsToRevise, item => ({
         id: item.requisitionItemId,
@@ -692,7 +692,7 @@ class EditItemsPage extends Component {
    * @public
    */
   transitionToNextStep() {
-    const url = `/api/stockMovements/${this.state.values.stockMovementId}/status`;
+    const url = `/openboxes/api/stockMovements/${this.state.values.stockMovementId}/status`;
     const payload = {
       status: 'PICKING',
       createPicklist: this.state.statusCode === 'REQUESTED' ? 'true' : 'false',
@@ -706,7 +706,7 @@ class EditItemsPage extends Component {
    * @public
    */
   fetchEditPageData() {
-    const url = `/api/stockMovements/${this.state.values.stockMovementId}`;
+    const url = `/openboxes/api/stockMovements/${this.state.values.stockMovementId}`;
 
     return apiClient.get(url)
       .then(resp => resp)
@@ -780,7 +780,7 @@ class EditItemsPage extends Component {
         buttons: [
           {
             label: this.props.translate('react.default.yes.label', 'Yes'),
-            onClick: () => { window.location = stringUrlInterceptor(`/stockMovement/show/${formValues.stockMovementId}`); },
+            onClick: () => { window.location = `/openboxes/stockMovement/show/${formValues.stockMovementId}`; },
           },
           {
             label: this.props.translate('react.default.no.label', 'No'),
@@ -791,7 +791,7 @@ class EditItemsPage extends Component {
     } else {
       this.reviseRequisitionItems(formValues)
         .then(() => {
-          window.location = stringUrlInterceptor(`/stockMovement/show/${formValues.stockMovementId}`);
+          window.location = `/openboxes/stockMovement/show/${formValues.stockMovementId}`;
         });
     }
   }
@@ -803,8 +803,8 @@ class EditItemsPage extends Component {
    */
   revertItem(values, itemId) {
     this.props.showSpinner();
-    const revertItemsUrl = `/api/stockMovementItems/${itemId}/revertItem`;
-    const itemsUrl = `/api/stockMovementItems/${itemId}?stepNumber=3`;
+    const revertItemsUrl = `/openboxes/api/stockMovementItems/${itemId}/revertItem`;
+    const itemsUrl = `/openboxes/api/stockMovementItems/${itemId}?stepNumber=3`;
 
     return apiClient.post(revertItemsUrl)
       .then(() => apiClient.get(itemsUrl)
@@ -914,7 +914,7 @@ class EditItemsPage extends Component {
               <button
                 type="button"
                 onClick={() => {
-                  window.location = stringUrlInterceptor('/stockMovement/list?direction=OUTBOUND');
+                  window.location = '/openboxes/stockMovement/list?direction=OUTBOUND';
                 }}
                 className="float-right mb-1 btn btn-outline-danger align-self-end btn-xs mr-2"
               >

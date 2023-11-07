@@ -8,14 +8,11 @@ import { confirmAlert } from 'react-confirm-alert';
 import { Form } from 'react-final-form';
 import { getTranslate } from 'react-localize-redux';
 import { connect } from 'react-redux';
-import { withRouter } from 'react-router-dom';
 import Alert from 'react-s-alert';
 import { Tooltip } from 'react-tippy';
 
 import { fetchReasonCodes, hideSpinner, showSpinner } from 'actions';
-import { EDIT_REQUEST } from 'api/redirectUrls';
 import ArrayField from 'components/form-elements/ArrayField';
-import Button from 'components/form-elements/Button';
 import ButtonField from 'components/form-elements/ButtonField';
 import LabelField from 'components/form-elements/LabelField';
 import SelectField from 'components/form-elements/SelectField';
@@ -23,11 +20,9 @@ import TableRowWithSubfields from 'components/form-elements/TableRowWithSubfield
 import TextField from 'components/form-elements/TextField';
 import DetailsModal from 'components/stock-movement-wizard/modals/DetailsModal';
 import SubstitutionsModal from 'components/stock-movement-wizard/modals/SubstitutionsModal';
-import RequisitionStatus from 'consts/requisitionStatus';
-import apiClient, { stringUrlInterceptor } from 'utils/apiClient';
+import apiClient from 'utils/apiClient';
 import { renderFormField } from 'utils/form-utils';
 import { formatProductDisplayName, showOutboundEditValidationErrors } from 'utils/form-values-utils';
-import canEditRequest from 'utils/permissionUtils';
 import renderHandlingIcons from 'utils/product-handling-icons';
 import Translate, { translateWithDefaultMessage } from 'utils/Translate';
 
@@ -1038,7 +1033,6 @@ class EditItemsPage extends Component {
         quantityOnHand: val.quantityOnHand > 0 ? val.quantityOnHand : 0,
         quantityAvailable:
             val.quantityAvailable > 0 ? val.quantityAvailable : 0,
-        quantityOnHandRequesting: val.quantityCounted,
         product: {
           ...val.product,
           label: `${val.productCode} ${val.productName}`,
@@ -1134,16 +1128,12 @@ class EditItemsPage extends Component {
     this.props.fetchReasonCodes();
 
     this.fetchEditPageData().then((resp) => {
-      const { statusCode, associations } = resp.data.data;
+      const { statusCode } = resp.data.data;
       const { totalCount } = resp.data;
 
       this.setState({
         statusCode,
         totalCount,
-        values: {
-          ...this.state.values,
-          associations,
-        },
       }, () => {
         if (!this.props.isPaginated || forceFetch) {
           this.fetchItems();
@@ -1155,7 +1145,7 @@ class EditItemsPage extends Component {
   }
 
   fetchItems() {
-    const url = `/api/stockMovements/${this.state.values.stockMovementId}/stockMovementItems?stepNumber=3`;
+    const url = `/openboxes/api/stockMovements/${this.state.values.stockMovementId}/stockMovementItems?stepNumber=3`;
     apiClient.get(url)
       .then((response) => {
         this.setEditPageItems(response, null);
@@ -1166,7 +1156,7 @@ class EditItemsPage extends Component {
   }
 
   fetchEditPageItems() {
-    const url = `/api/stockMovements/${this.state.values.stockMovementId}/stockMovementItems?stepNumber=3`;
+    const url = `/openboxes/api/stockMovements/${this.state.values.stockMovementId}/stockMovementItems?stepNumber=3`;
     apiClient.get(url)
       .then((response) => {
         const { data } = response.data;
@@ -1174,10 +1164,8 @@ class EditItemsPage extends Component {
           hasItemsLoaded: true,
           values: {
             ...this.state.values,
-            associations: data?.associations,
             editPageItems: _.map(data, item => ({
               ...item,
-              quantityOnHandRequesting: item.quantityCounted,
               quantityOnHand: item.quantityOnHand || 0,
               // eslint-disable-next-line max-len
               reasonCode: _.find(this.props.reasonCodes, ({ value }) => _.includes(item.reasonCode, value)),
@@ -1203,7 +1191,7 @@ class EditItemsPage extends Component {
       this.setState({
         isFirstPageLoaded: true,
       });
-      const url = `/api/stockMovements/${this.state.values.stockMovementId}/stockMovementItems?offset=${startIndex}&max=${this.props.pageSize}&stepNumber=3`;
+      const url = `/openboxes/api/stockMovements/${this.state.values.stockMovementId}/stockMovementItems?offset=${startIndex}&max=${this.props.pageSize}&stepNumber=3`;
       apiClient.get(url)
         .then((response) => {
           this.setEditPageItems(response, startIndex);
@@ -1258,7 +1246,7 @@ class EditItemsPage extends Component {
       values: updatedValues,
     });
 
-    const url = `/api/stockMovements/${this.state.values.stockMovementId}/reviseItems`;
+    const url = `/openboxes/api/stockMovements/${this.state.values.stockMovementId}/reviseItems`;
     const payload = {
       lineItems: _.map(itemsToRevise, item => ({
         id: item.requisitionItemId,
@@ -1372,7 +1360,7 @@ class EditItemsPage extends Component {
    * @public
    */
   transitionToNextStep() {
-    const url = `/api/stockMovements/${this.state.values.stockMovementId}/status`;
+    const url = `/openboxes/api/stockMovements/${this.state.values.stockMovementId}/status`;
     const payload = {
       status: 'PICKING',
       createPicklist: this.state.statusCode === 'REQUESTED' ? 'true' : 'false',
@@ -1386,7 +1374,7 @@ class EditItemsPage extends Component {
    * @public
    */
   fetchEditPageData() {
-    const url = `/api/stockMovements/${this.state.values.stockMovementId}`;
+    const url = `/openboxes/api/stockMovements/${this.state.values.stockMovementId}`;
 
     return apiClient.get(url)
       .then(resp => resp)
@@ -1427,7 +1415,6 @@ class EditItemsPage extends Component {
             $set: {
               ...values.editPageItems[editPageItemIndex],
               ...editPageItem,
-              quantityOnHandRequesting: editPageItem.quantityCounted,
               quantityOnHand: editPageItem.quantityOnHand || 0,
               quantityAvailable: editPageItem.quantityAvailable || 0,
               substitutionItems: _.map(editPageItem.substitutionItems, sub => ({
@@ -1462,7 +1449,7 @@ class EditItemsPage extends Component {
         buttons: [
           {
             label: this.props.translate('react.default.yes.label', 'Yes'),
-            onClick: () => { window.location = stringUrlInterceptor(`/stockMovement/show/${formValues.stockMovementId}`); },
+            onClick: () => { window.location = `/openboxes/stockMovement/show/${formValues.stockMovementId}`; },
           },
           {
             label: this.props.translate('react.default.no.label', 'No'),
@@ -1473,7 +1460,7 @@ class EditItemsPage extends Component {
     } else {
       this.reviseRequisitionItems(formValues)
         .then(() => {
-          window.location = stringUrlInterceptor(`/stockMovement/show/${formValues.stockMovementId}`);
+          window.location = `/openboxes/stockMovement/show/${formValues.stockMovementId}`;
         });
     }
   }
@@ -1485,8 +1472,8 @@ class EditItemsPage extends Component {
    */
   revertItem(values, itemId) {
     this.props.showSpinner();
-    const revertItemsUrl = `/api/stockMovementItems/${itemId}/revertItem`;
-    const itemsUrl = `/api/stockMovementItems/${itemId}?stepNumber=3`;
+    const revertItemsUrl = `/openboxes/api/stockMovementItems/${itemId}/revertItem`;
+    const itemsUrl = `/openboxes/api/stockMovementItems/${itemId}?stepNumber=3`;
 
     return apiClient.post(revertItemsUrl)
       .then(() => apiClient.get(itemsUrl)
@@ -1505,24 +1492,9 @@ class EditItemsPage extends Component {
       });
   }
 
-  isAddingItemsAllowed() {
-    const { currentUser, currentLocation } = this.props;
-    const { values } = this.state;
-    const status = values?.associations?.requisition?.status;
-
-    const allowedStatuses = [
-      RequisitionStatus.CREATED,
-      RequisitionStatus.EDITING,
-      RequisitionStatus.VERIFYING,
-      RequisitionStatus.PENDING_APPROVAL,
-    ];
-    return canEditRequest(currentUser, values, currentLocation) && allowedStatuses.includes(status);
-  }
-
   render() {
     const { showOnlyErroredItems, itemFilter } = this.state;
     const { showOnly } = this.props;
-    const isAddingItemsAllowed = this.isAddingItemsAllowed();
     const erroredItemsCount = this.state.values && this.state.values.editPageItems.length > 0 ? _.filter(this.state.values.editPageItems, item => item.hasError).length : '0';
     return (
       <Form
@@ -1598,8 +1570,8 @@ class EditItemsPage extends Component {
                 type="button"
                 onClick={() => {
                   window.location = !this.props.supportedActivities.includes('MANAGE_INVENTORY') && this.props.supportedActivities.includes('SUBMIT_REQUEST')
-                    ? stringUrlInterceptor('/dashboard')
-                    : stringUrlInterceptor('/stockMovement/list?direction=INBOUND');
+                    ? '/openboxes/dashboard'
+                    : '/openboxes/stockMovement/list?direction=INBOUND';
                 }}
                 className="float-right mb-1 btn btn-outline-danger align-self-end btn-xs mr-2"
               >
@@ -1628,15 +1600,7 @@ class EditItemsPage extends Component {
                     itemFilter,
                 }))}
               </div>
-              <div className={`submit-buttons ${isAddingItemsAllowed ? 'd-flex justify-content-between' : ''}`}>
-                {isAddingItemsAllowed &&
-                  <Button
-                    label="react.stockMovement.editRequestItems.label"
-                    defaultLabel="Edit request items"
-                    variant="primary-outline"
-                    onClick={() => this.props.history.push(EDIT_REQUEST(this.state.values?.id))}
-                  />
-                }
+              <div className="submit-buttons">
                 <button
                   type="submit"
                   disabled={!this.state.hasItemsLoaded || showOnly || invalid}
@@ -1666,13 +1630,11 @@ const mapStateToProps = state => ({
   pageSize: state.session.pageSize,
   supportedActivities: state.session.supportedActivities,
   currentLocale: state.session.activeLanguage,
-  currentUser: state.session.user,
-  currentLocation: state.session.currentLocation,
 });
 
-export default withRouter(connect(mapStateToProps, {
+export default connect(mapStateToProps, {
   fetchReasonCodes, showSpinner, hideSpinner,
-})(EditItemsPage));
+})(EditItemsPage);
 
 EditItemsPage.propTypes = {
   /** Initial component's data */
@@ -1699,14 +1661,4 @@ EditItemsPage.propTypes = {
   pageSize: PropTypes.number.isRequired,
   supportedActivities: PropTypes.arrayOf(PropTypes.string).isRequired,
   currentLocale: PropTypes.string.isRequired,
-  currentUser: PropTypes.shape({
-    id: PropTypes.string.isRequired,
-  }).isRequired,
-  history: PropTypes.shape({
-    push: PropTypes.func,
-  }).isRequired,
-  currentLocation: PropTypes.shape({
-    id: PropTypes.string.isRequired,
-    name: PropTypes.string.isRequired,
-  }).isRequired,
 };

@@ -134,9 +134,10 @@ const FilterForm = ({
                     <Button
                       defaultLabel="Search"
                       label="react.button.search.label"
+                      onClick={() => updateFilterParams(values)}
                       disabled={!allowEmptySubmit && _.every(values, value => !value)}
                       variant="primary"
-                      type="submit"
+                      type="button"
                     />
                   </div>
                 </div>

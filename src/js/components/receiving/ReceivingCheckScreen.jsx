@@ -16,7 +16,7 @@ import DateField from 'components/form-elements/DateField';
 import LabelField from 'components/form-elements/LabelField';
 import TableRowWithSubfields from 'components/form-elements/TableRowWithSubfields';
 import TextField from 'components/form-elements/TextField';
-import apiClient, { flattenRequest, parseResponse, stringUrlInterceptor } from 'utils/apiClient';
+import apiClient, { flattenRequest, parseResponse } from 'utils/apiClient';
 import { renderFormField } from 'utils/form-utils';
 import { formatProductDisplayName, getReceivingPayloadContainers } from 'utils/form-values-utils';
 import Translate from 'utils/Translate';
@@ -251,7 +251,7 @@ class ReceivingCheckScreen extends Component {
       }, () => {
         this.setState({ completed: true });
         const { requisition, shipmentId } = formValues;
-        window.location = stringUrlInterceptor(`/stockMovement/show/${requisition || shipmentId}`);
+        window.location = `/openboxes/stockMovement/show/${requisition || shipmentId}`;
       });
     }
   }
@@ -262,7 +262,7 @@ class ReceivingCheckScreen extends Component {
    */
   fetchPartialReceiptCandidates() {
     this.props.showSpinner();
-    const url = `/api/partialReceiving/${this.props.match.params.shipmentId}?stepNumber=2`;
+    const url = `/openboxes/api/partialReceiving/${this.props.match.params.shipmentId}?stepNumber=2`;
 
     return apiClient.get(url)
       .then((response) => {
@@ -307,7 +307,7 @@ class ReceivingCheckScreen extends Component {
           }, () => {
             this.setState({ completed: true });
             const { requisition, shipmentId } = formValues;
-            window.location = stringUrlInterceptor(`/stockMovement/show/${requisition || shipmentId}`);
+            window.location = `/openboxes/stockMovement/show/${requisition || shipmentId}`;
           }),
         },
         {
@@ -342,14 +342,14 @@ class ReceivingCheckScreen extends Component {
       .then(() => {
         const { requisition, shipmentId } = formValues;
 
-        window.location = stringUrlInterceptor(`/stockMovement/show/${requisition || shipmentId}`);
+        window.location = `/openboxes/stockMovement/show/${requisition || shipmentId}`;
       })
       .catch(() => this.props.hideSpinner());
   }
 
   saveValues(formValues) {
     this.props.showSpinner();
-    const url = `/api/partialReceiving/${this.props.match.params.shipmentId}?stepNumber=2`;
+    const url = `/openboxes/api/partialReceiving/${this.props.match.params.shipmentId}?stepNumber=2`;
 
     const payload = {
       ...formValues,

@@ -103,11 +103,6 @@ class UrlMappings {
             controller = { "productApi" }
         }
 
-        "/api/products/$productId/inventoryItems/$lotNumber"(parseRequest: true) {
-            controller = { "productApi" }
-            action = [GET: "getInventoryItem"]
-        }
-
         "/api/locations/locationTypes" {
             controller = { "locationApi" }
             action = [GET: "locationTypes"]
@@ -310,11 +305,6 @@ class UrlMappings {
         "/api/stockMovements/requisitionsStatusCodes" {
             controller = "stockMovementApi"
             action = [GET: "requisitionStatusCodes"]
-        }
-
-        "/api/stockMovements/$id/rollbackApproval" {
-            controller = "stockMovementApi"
-            action = [PUT: "rollbackApproval"]
         }
 
         // Partial Receiving API
@@ -843,7 +833,7 @@ class UrlMappings {
         "500"(controller: "errors", action: "handleNotFound", exception: ObjectNotFoundException)
         "500"(controller: "errors", action: "handleValidationErrors", exception: ValidationException)
         "500"(controller: "errors", action: "handleUnauthorized", exception: AuthenticationException)
-        "/"(controller: "dashboard", action: "index")
+        "/"(controller: "dashboard", action: "index")	
     }
 
 

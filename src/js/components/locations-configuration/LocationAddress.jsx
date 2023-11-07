@@ -9,9 +9,8 @@ import { withRouter } from 'react-router-dom';
 import Alert from 'react-s-alert';
 
 import { hideSpinner, showSpinner } from 'actions';
-import { LOCATION } from 'api/urls';
 import TextField from 'components/form-elements/TextField';
-import apiClient, { mapToEmptyString } from 'utils/apiClient';
+import apiClient, { flattenRequest } from 'utils/apiClient';
 import { renderFormField } from 'utils/form-utils';
 import Translate, { translateWithDefaultMessage } from 'utils/Translate';
 
@@ -86,7 +85,7 @@ class LocationAddress extends Component {
   }
 
   fetchLocation() {
-    const url = `/api/locations/${this.props.match.params.locationId}`;
+    const url = `/openboxes/api/locations/${this.props.match.params.locationId}`;
     apiClient.get(url).then((response) => {
       const location = response.data.data;
       this.setState({
@@ -100,14 +99,14 @@ class LocationAddress extends Component {
   }
 
   saveAddressOfLocation(values, callback) {
+    const valuesAsAddressObject = {
+      address: {
+        ...values,
+      },
+    };
     this.props.showSpinner();
-    const payload = mapToEmptyString(values, [null]);
-    // If field was edited it is undefined and we need to send empty string
-    // to remove it from location. If it is null, there is no need to send it, because
-    // it will be null be default
-    // We can't send empty address, because address.address is not nullable field
-    const addressPayload = !_.isEmpty(payload) ? { address: payload } : {};
-    apiClient.post(LOCATION(this.state.locationId), addressPayload)
+    const locationUrl = `/openboxes/api/locations/${this.state.locationId}`;
+    apiClient.post(locationUrl, flattenRequest(valuesAsAddressObject))
       .then(() => {
         this.props.hideSpinner();
         callback({

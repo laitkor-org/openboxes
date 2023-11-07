@@ -190,10 +190,10 @@ class SubstitutionsModal extends Component {
       || this.state.attr.lineItem;
     const substitutionReasonCode = _.get(values, 'reasonCode.value');
 
-    const url = `/api/stockMovementItems/${originalItem.requisitionItemId}/substituteItem`;
+    const url = `/openboxes/api/stockMovementItems/${originalItem.requisitionItemId}/substituteItem`;
     const payload = {
       substitutionItems: _.map(substitutions, (sub, key) => ({
-        newProduct: { id: sub.product.id },
+        'newProduct.id': sub.product.id,
         newQuantity: sub.quantitySelected,
         reasonCode: substitutionReasonCode === 'SUBSTITUTION'
           ? substitutionReasonCode
@@ -214,7 +214,7 @@ class SubstitutionsModal extends Component {
 
   fetchSubstitutions() {
     this.setState({ isLoading: true });
-    const url = `/api/stockMovements/${this.state.attr.lineItem.requisitionItemId}/substitutionItems`;
+    const url = `/openboxes/api/stockMovements/${this.state.attr.lineItem.requisitionItemId}/substitutionItems`;
     return apiClient.get(url)
       .then((resp) => {
         let substitutions = _.map(

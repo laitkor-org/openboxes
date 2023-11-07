@@ -16,7 +16,6 @@ import groovy.sql.Sql
 import org.apache.commons.collections.ListUtils
 import org.hibernate.sql.JoinType
 import org.pih.warehouse.auth.AuthService
-import org.pih.warehouse.core.Role
 
 @Transactional
 class UserService {
@@ -205,10 +204,10 @@ class UserService {
         return false
     }
 
-    Boolean hasRolePurchaseApprover(User u) {
+    Boolean hasRoleApprover(User u) {
         if (u) {
             def user = User.get(u.id)
-            def roleTypes = [RoleType.ROLE_PURCHASE_APPROVER]
+            def roleTypes = [RoleType.ROLE_APPROVER]
             return getEffectiveRoles(user).any { Role role -> roleTypes.contains(role.roleType) }
         }
         return false
@@ -248,13 +247,6 @@ class UserService {
         return isSuperuser(currentUser) || (currentUser.getHighestRole(location) >= otherUser.getHighestRole(location))
     }
 
-    boolean isUserInAllRoles(String userId, Collection roleTypes, String locationId) {
-        User user = User.get(userId)
-        Location location = Location.get(locationId)
-
-        return user.hasRoles(location, roleTypes)
-    }
-
     Boolean isUserInRole(User user, RoleType roleType) {
         return isUserInRole(user.id, [roleType])
     }
@@ -287,11 +279,7 @@ class UserService {
 
     List<User> findUsers(Map params) {
         List<String> terms = params.searchTerm?.split(",| ")
-        List<RoleType> roleTypeList = params.roleTypes.collect { RoleType.valueOf(it) }
-        List<String> roleIds = roleTypeList ? Role.findAllByRoleTypeInList(roleTypeList).collect{ it.id } : null
-        Location location = params.location ? Location.get(params.location) : null
-
-        return User.createCriteria().listDistinct() {
+        return User.createCriteria().list() {
             if (params.active != null) {
                 eq("active", Boolean.valueOf(params.active))
             }
@@ -301,19 +289,6 @@ class UserService {
                         ilike("firstName", "%" + term + "%")
                         ilike("lastName", "%" + term + "%")
                         ilike("email", "%" + term + "%")
-                    }
-                }
-            }
-            if (roleIds) {
-                or {
-                    roles {
-                        'in'("id", roleIds)
-                    }
-                    if (location) {
-                        locationRoles {
-                            'in'("role.id", roleIds)
-                            eq("location.id", location.id)
-                        }
                     }
                 }
             }
@@ -426,11 +401,7 @@ class UserService {
 
     public def getEffectiveRoles(User user) {
         def currentLocation = authService.currentLocation
-        return getEffectiveRoles(user, currentLocation)
-    }
-
-    public def getEffectiveRoles(User user, Location location) {
-        return user.getEffectiveRoles(location)
+        return user.getEffectiveRoles(currentLocation)
     }
 
 

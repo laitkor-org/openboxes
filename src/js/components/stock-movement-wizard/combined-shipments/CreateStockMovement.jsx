@@ -11,7 +11,7 @@ import { withRouter } from 'react-router-dom';
 import { hideSpinner, showSpinner } from 'actions';
 import SelectField from 'components/form-elements/SelectField';
 import TextField from 'components/form-elements/TextField';
-import apiClient, { stringUrlInterceptor } from 'utils/apiClient';
+import apiClient from 'utils/apiClient';
 import { renderFormField } from 'utils/form-utils';
 import { debounceLocationsFetch } from 'utils/option-utils';
 import Translate, { translateWithDefaultMessage } from 'utils/Translate';
@@ -116,7 +116,7 @@ class CreateStockMovement extends Component {
 
   componentDidMount() {
     if (orderId) {
-      const url = `/api/combineShipments/${orderId}`;
+      const url = `/openboxes/api/combineShipments/${orderId}`;
       apiClient.get(url)
         .then((resp) => {
           const { data } = resp.data;
@@ -172,29 +172,28 @@ class CreateStockMovement extends Component {
 
       let payload = {
         description: values.description,
-        origin: { id: values.origin.id },
-        destination: { id: values.destination.id },
+        'origin.id': values.origin.id,
+        'destination.id': values.destination.id,
       };
       let stockMovementUrl = '';
 
       if (values.stockMovementId) {
-        stockMovementUrl = `/api/stockMovements/${values.stockMovementId}/updateRequisition`;
+        stockMovementUrl = `/openboxes/api/stockMovements/${values.stockMovementId}/updateRequisition`;
         payload = {
           description: values.description,
-          destination: { id: values.destination.id },
+          'destination.id': values.destination.id,
         };
       } else {
-        stockMovementUrl = '/api/stockMovements/createCombinedShipments';
+        stockMovementUrl = '/openboxes/api/stockMovements/createCombinedShipments';
       }
 
       apiClient.post(stockMovementUrl, payload)
         .then((response) => {
           if (response.data) {
             const resp = response.data.data;
-            this.props.history.push(stringUrlInterceptor(`/stockMovement/createCombinedShipments/${resp.id}`));
+            this.props.history.push(`/openboxes/stockMovement/createCombinedShipments/${resp.id}`);
             this.props.nextPage({
               ...values,
-              dateRequested: resp.dateRequested,
               stockMovementId: resp.id,
               lineItems: resp.lineItems,
               movementNumber: resp.identifier,

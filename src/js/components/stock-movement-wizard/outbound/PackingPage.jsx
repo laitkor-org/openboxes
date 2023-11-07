@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 
+import axios from 'axios';
 import arrayMutators from 'final-form-arrays';
 import update from 'immutability-helper';
 import _ from 'lodash';
@@ -19,11 +20,9 @@ import TextField from 'components/form-elements/TextField';
 import PackingSplitLineModal from 'components/stock-movement-wizard/modals/PackingSplitLineModal';
 import AlertMessage from 'utils/AlertMessage';
 import {
-  apiClientCustomResponseHandler as apiClient,
   flattenRequest,
+  handleError,
   handleSuccess,
-  handleValidationErrors,
-  stringUrlInterceptor,
 } from 'utils/apiClient';
 import { renderFormField } from 'utils/form-utils';
 import { formatProductDisplayName, matchesProductCodeOrName } from 'utils/form-values-utils';
@@ -31,6 +30,7 @@ import { debouncePeopleFetch } from 'utils/option-utils';
 import Translate, { translateWithDefaultMessage } from 'utils/Translate';
 
 import 'react-confirm-alert/src/react-confirm-alert.css';
+
 
 const FIELDS = {
   packPageItems: {
@@ -180,6 +180,8 @@ const FIELDS = {
   },
 };
 
+const apiClient = axios.create({});
+
 function validate(values) {
   const errors = {};
   errors.packPageItems = [];
@@ -214,14 +216,14 @@ class PackingPage extends Component {
     this.saveSplitLines = this.saveSplitLines.bind(this);
     this.isRowLoaded = this.isRowLoaded.bind(this);
     this.loadMoreRows = this.loadMoreRows.bind(this);
-    this.setState = this.setState.bind(this);
+    this.handleValidationErrors = this.handleValidationErrors.bind(this);
+
+    apiClient.interceptors.response.use(handleSuccess, this.handleValidationErrors);
 
     this.debouncedPeopleFetch =
       debouncePeopleFetch(this.props.debounceTime, this.props.minSearchLength);
 
     this.props.showSpinner();
-
-    apiClient.interceptors.response.use(handleSuccess, handleValidationErrors(this.setState));
   }
 
   componentDidMount() {
@@ -262,7 +264,7 @@ class PackingPage extends Component {
    * @public
    */
   fetchAllData() {
-    const url = `/api/stockMovements/${this.state.values.stockMovementId}?stepNumber=5`;
+    const url = `/openboxes/api/stockMovements/${this.state.values.stockMovementId}?stepNumber=5`;
 
     apiClient.get(url)
       .then((resp) => {
@@ -288,7 +290,7 @@ class PackingPage extends Component {
       this.setState({
         isFirstPageLoaded: true,
       });
-      const url = `/api/stockMovements/${this.state.values.stockMovementId}/stockMovementItems?offset=${startIndex}&max=${this.props.pageSize}&stepNumber=5`;
+      const url = `/openboxes/api/stockMovements/${this.state.values.stockMovementId}/stockMovementItems?offset=${startIndex}&max=${this.props.pageSize}&stepNumber=5`;
       apiClient.get(url)
         .then((response) => {
           this.setPackPageItems(response, startIndex);
@@ -305,7 +307,7 @@ class PackingPage extends Component {
    * @public
    */
   fetchLineItems() {
-    const url = `/api/stockMovements/${this.state.values.stockMovementId}/stockMovementItems?stepNumber=5`;
+    const url = `/openboxes/api/stockMovements/${this.state.values.stockMovementId}/stockMovementItems?stepNumber=5`;
 
     return apiClient.get(url)
       .then(resp => resp)
@@ -357,7 +359,7 @@ class PackingPage extends Component {
    * @public
    */
   transitionToNextStep() {
-    const url = `/api/stockMovements/${this.state.values.stockMovementId}/status`;
+    const url = `/openboxes/api/stockMovements/${this.state.values.stockMovementId}/status`;
     const status = 'CHECKING';
     const payload = { status };
 
@@ -381,8 +383,19 @@ class PackingPage extends Component {
   }
 
   validatePicklist() {
-    const url = `/api/stockMovements/${this.state.values.stockMovementId}/validatePicklist`;
+    const url = `/openboxes/api/stockMovements/${this.state.values.stockMovementId}/validatePicklist`;
     return apiClient.get(url);
+  }
+
+  handleValidationErrors(error) {
+    if (error.response.status === 400) {
+      const alertMessage = _.join(_.get(error, 'response.data.errorMessages', ''), ' ');
+      this.setState({ alertMessage, showAlert: true });
+
+      return Promise.reject(error);
+    }
+
+    return handleError(error);
   }
 
   /**
@@ -439,7 +452,7 @@ class PackingPage extends Component {
    * @public
    */
   savePackingData(packPageItems) {
-    const updateItemsUrl = `/api/stockMovements/${this.state.values.stockMovementId}/updateShipmentItems`;
+    const updateItemsUrl = `/openboxes/api/stockMovements/${this.state.values.stockMovementId}/updateShipmentItems`;
     const payload = {
       id: this.state.values.stockMovementId,
       stepNumber: '5',
@@ -524,7 +537,7 @@ class PackingPage extends Component {
                 <button
                   type="button"
                   disabled={invalid}
-                  onClick={() => this.savePackingData(values.packPageItems).then(() => { window.location = stringUrlInterceptor(`/stockMovement/show/${values.stockMovementId}`); })}
+                  onClick={() => this.savePackingData(values.packPageItems).then(() => { window.location = `/openboxes/stockMovement/show/${values.stockMovementId}`; })}
                   className="float-right mb-1 btn btn-outline-secondary align-self-end btn-xs"
                 >
                   <span><i className="fa fa-sign-out pr-2" /><Translate id="react.default.button.saveAndExit.label" defaultMessage="Save and exit" /></span>
@@ -534,7 +547,7 @@ class PackingPage extends Component {
               <button
                 type="button"
                 disabled={invalid}
-                onClick={() => { window.location = stringUrlInterceptor('/stockMovement/list?direction=OUTBOUND'); }}
+                onClick={() => { window.location = '/openboxes/stockMovement/list?direction=OUTBOUND'; }}
                 className="float-right mb-1 btn btn-outline-danger align-self-end btn-xs mr-2"
               >
                 <span><i className="fa fa-sign-out pr-2" /> <Translate id="react.default.button.exit.label" defaultMessage="Exit" /> </span>

@@ -15,7 +15,7 @@ const ResettingInstanceInfoPage = ({ history }) => {
   useTranslation('resetInstance');
 
   useEffect(() => {
-    apiClient.get('/api/resettingInstance/command').then((response) => {
+    apiClient.get('/openboxes/api/resettingInstance/command').then((response) => {
       setResettingInstanceCommand(response.data.data);
     });
   }, []);
@@ -31,7 +31,7 @@ const ResettingInstanceInfoPage = ({ history }) => {
         </p>
         <p className="font-weight-bold">{resettingInstanceCommand}</p>
         <button
-          onClick={() => history.push('/')}
+          onClick={() => history.push('/openboxes')}
           type="button"
           className="btn btn-outline-primary w-25 align-self-end"
         >

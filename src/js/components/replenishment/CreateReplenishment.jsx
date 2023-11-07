@@ -14,7 +14,7 @@ import ArrayField from 'components/form-elements/ArrayField';
 import CheckboxField from 'components/form-elements/CheckboxField';
 import LabelField from 'components/form-elements/LabelField';
 import TextField from 'components/form-elements/TextField';
-import apiClient, { flattenRequest, parseResponse, stringUrlInterceptor } from 'utils/apiClient';
+import apiClient, { flattenRequest, parseResponse } from 'utils/apiClient';
 import { renderFormField } from 'utils/form-utils';
 import Select from 'utils/Select';
 import Translate, { translateWithDefaultMessage } from 'utils/Translate';
@@ -253,7 +253,7 @@ class CreateReplenishment extends Component {
   dataFetched = false;
 
   fetchStatusOptions() {
-    const url = '/api/replenishments/statusOptions';
+    const url = '/openboxes/api/replenishments/statusOptions';
     return apiClient.get(url)
       .then((resp) => {
         const statusOptions = resp.data.data;
@@ -265,7 +265,7 @@ class CreateReplenishment extends Component {
   fetchRequirements(locationId) {
     this.props.showSpinner();
     const { inventoryLevelStatus } = this.state;
-    let url = `/api/requirements?location.id=${locationId}`;
+    let url = `/openboxes/api/requirements?location.id=${locationId}`;
     if (inventoryLevelStatus.id) {
       url += `&inventoryLevelStatus=${inventoryLevelStatus.id}`;
     }
@@ -284,7 +284,7 @@ class CreateReplenishment extends Component {
 
   createReplenishment(values) {
     this.props.showSpinner();
-    const url = '/api/replenishments/';
+    const url = '/openboxes/api/replenishments/';
     const payload = {
       replenishmentItems: values.requirements.filter(item => item.checked && item.quantity > 0),
     };
@@ -292,7 +292,7 @@ class CreateReplenishment extends Component {
     apiClient.post(url, flattenRequest(payload))
       .then((response) => {
         this.props.hideSpinner();
-        this.props.history.push(stringUrlInterceptor(`/replenishment/create/${response.data?.data?.id}`));
+        this.props.history.push(`/openboxes/replenishment/create/${response.data?.data?.id}`);
         this.props.nextPage(response.data?.data);
       })
       .catch(() => this.props.hideSpinner());

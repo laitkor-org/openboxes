@@ -163,7 +163,7 @@ class EditPickModal extends Component {
   onSave(values) {
     this.props.showSpinner();
 
-    const picklistUrl = `/api/replenishments/${this.state.attr.itemId}/picklists`;
+    const picklistUrl = `/openboxes/api/replenishments/${this.state.attr.itemId}/picklists`;
     const payload = {
       picklistItems: _.map(values.availableItems, avItem => ({
         id: avItem.id || '',
@@ -200,7 +200,7 @@ class EditPickModal extends Component {
   }
 
   fetchPickPageItem() {
-    const itemsUrl = `/api/replenishments/${this.state.attr.itemId}/picklists`;
+    const itemsUrl = `/openboxes/api/replenishments/${this.state.attr.itemId}/picklists`;
 
     apiClient.get(itemsUrl)
       .then((resp) => {

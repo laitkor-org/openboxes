@@ -52,7 +52,7 @@ const LocationChooser = (props) => {
   };
 
   const fetchLocations = () => {
-    const url = '/api/locations';
+    const url = '/openboxes/api/locations';
     const params = {
       locationChooser: true,
       applyUserFilter: true,
@@ -104,6 +104,7 @@ const LocationChooser = (props) => {
 
 const mapStateToProps = state => ({
   currentLocation: state.session.currentLocation,
+  defaultTranslationsFetched: state.session.fetchedTranslations.default,
   logoLabel: state.session.logoLabel,
 });
 

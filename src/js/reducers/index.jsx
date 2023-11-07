@@ -1,7 +1,6 @@
 import { localizeReducer } from 'react-localize-redux';
 import { combineReducers } from 'redux';
 
-import approversReducer from 'reducers/approversReducer';
 import connectionReducer from 'reducers/connectionReducer';
 import currenciesReducer from 'reducers/currenciesReducer';
 import filterFormReducer from 'reducers/filterFormReducer';
@@ -29,7 +28,6 @@ const rootReducer = combineReducers({
   connection: connectionReducer,
   reasonCodes: reasonCodesReducer,
   users: usersReducer,
-  approvers: approversReducer,
   session: sessionReducer,
   indicators: indicatorsReducer,
   currencies: currenciesReducer,

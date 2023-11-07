@@ -48,7 +48,7 @@ const Footer = ({
                 key={language.code}
                 href="/openboxes/user/enableLocalizationMode"
               >
-                {language.name}
+                <Translate id={`react.default.${language.name.toLowerCase()}.label`} />
               </a>
             );
           }
@@ -61,7 +61,7 @@ const Footer = ({
                 key={language.code}
                 href={`/openboxes/user/disableLocalizationMode?locale=${language.code}`}
               >
-                {language.name}
+                <Translate id={`react.default.${language.name.toLowerCase()}.label`} />
               </a>
             );
           }
@@ -76,7 +76,7 @@ const Footer = ({
                 setLanguage(language.code);
               }}
             >
-              {language.name}
+              <Translate id={`react.default.${language.name.toLowerCase()}.label`} />
             </button>
           );
         })}

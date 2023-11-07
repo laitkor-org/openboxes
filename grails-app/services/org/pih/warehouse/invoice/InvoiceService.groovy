@@ -184,12 +184,9 @@ class InvoiceService {
 
     def removeInvoiceItem(String id) {
         InvoiceItem invoiceItem = InvoiceItem.get(id)
-        if (!invoiceItem) {
-            throw new IllegalArgumentException("No invoice item found with id: ${id}")
-        }
         Invoice invoice = invoiceItem.invoice
         invoice.removeFromInvoiceItems(invoiceItem)
-        deleteInvoiceItem(invoiceItem)
+        invoiceItem.delete()
     }
 
     def updateItems(Invoice invoice, List items) {
@@ -409,25 +406,5 @@ class InvoiceService {
             }
             eq("product", product)
         }
-    }
-
-    def deleteInvoice(Invoice invoice) {
-        if (!invoice) {
-            throw new IllegalArgumentException("Missing invoice to delete")
-        }
-        invoice.invoiceItems?.each { InvoiceItem invoiceItem ->
-            deleteInvoiceItem(invoiceItem)
-        }
-        invoice.delete(flush: true)
-    }
-
-    def deleteInvoiceItem(InvoiceItem invoiceItem) {
-        if (!invoiceItem) {
-            throw new IllegalArgumentException("Missing invoice item to delete")
-        }
-        invoiceItem.orderAdjustments?.each { OrderAdjustment oa -> oa.removeFromInvoiceItems(invoiceItem) }
-        invoiceItem.orderItems?.each { OrderItem oi -> oi.removeFromInvoiceItems(invoiceItem) }
-        invoiceItem.shipmentItems?.each { ShipmentItem si -> si.removeFromInvoiceItems(invoiceItem) }
-        invoiceItem.delete()
     }
 }

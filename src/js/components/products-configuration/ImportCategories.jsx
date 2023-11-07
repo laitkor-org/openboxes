@@ -35,7 +35,7 @@ class ImportCategories extends Component {
       },
     };
 
-    const url = '/api/productsConfiguration/importCategoryCsv';
+    const url = '/openboxes/api/productsConfiguration/importCategoryCsv';
 
     return apiClient.post(url, formData, config)
       .then(() => {
@@ -50,7 +50,7 @@ class ImportCategories extends Component {
 
   downloadCategoryTemplate() {
     this.props.showSpinner();
-    apiClient.get('/api/productsConfiguration/downloadCategoryTemplate')
+    apiClient.get('/openboxes/api/productsConfiguration/downloadCategoryTemplate')
       .then((response) => {
         fileDownload(response.data, 'Category_template.csv', 'text/csv');
         this.props.hideSpinner();

@@ -76,7 +76,7 @@ class ReceivingPage extends Component {
   get wizardTitle() {
     const { formData } = this.state;
     if (!formData.shipment) {
-      return [];
+      return '';
     }
     const dateShipped = moment(formData.dateShipped).format('MM/DD/YYYY');
     return [
@@ -121,7 +121,7 @@ class ReceivingPage extends Component {
    */
   fetchPartialReceiptCandidates() {
     this.props.showSpinner();
-    const url = `/api/partialReceiving/${this.props.match.params.shipmentId}?stepNumber=${this.state.currentPage}`;
+    const url = `/openboxes/api/partialReceiving/${this.props.match.params.shipmentId}?stepNumber=${this.state.currentPage}`;
 
     return apiClient.get(url)
       .then((response) => {
@@ -142,7 +142,7 @@ class ReceivingPage extends Component {
    * @public
    */
   fetchBins() {
-    const url = '/api/internalLocations/receiving';
+    const url = '/openboxes/api/internalLocations/receiving';
     const mapBins = bins => (_.chain(bins)
       .orderBy(['name'], ['asc']).value()
     );

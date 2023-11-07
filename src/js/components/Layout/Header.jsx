@@ -63,7 +63,7 @@ export default connect(mapStateToProps)(Header);
 Header.propTypes = {
   isImpersonated: PropTypes.bool.isRequired,
   localizationModeEnabled: PropTypes.bool.isRequired,
-  bars: PropTypes.objectOf(PropTypes.shape({
+  bars: PropTypes.arrayOf(PropTypes.shape({
     name: PropTypes.string.isRequired,
     show: PropTypes.bool.isRequired,
     closed: PropTypes.bool,

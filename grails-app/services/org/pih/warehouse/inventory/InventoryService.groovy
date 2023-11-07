@@ -1231,7 +1231,7 @@ class InventoryService implements ApplicationContextAware {
                     def quantityOnHand = quantityBinLocationMap[product][inventoryItem][binLocation]
 
                     def quantityAvailableMap = quantityAvailableInventoryItemMap[product][inventoryItem]
-                    Integer quantityAvailable = quantityAvailableMap ? quantityAvailableMap[binLocation?.id] : 0
+                    def quantityAvailable = quantityAvailableMap ? quantityAvailableMap[binLocation] : 0
 
                     // We don't want to show the negative values on the frontend
                     quantityAvailable = quantityAvailable > 0 ? quantityAvailable : 0
@@ -1274,7 +1274,7 @@ class InventoryService implements ApplicationContextAware {
                 quantityAvailableMap[product][inventoryItem] = [:]
             }
 
-            quantityAvailableMap[product][inventoryItem][binLocation?.id] = it.quantityAvailableToPromise
+            quantityAvailableMap[product][inventoryItem][binLocation] = it.quantityAvailableToPromise
         }
 
         return quantityAvailableMap

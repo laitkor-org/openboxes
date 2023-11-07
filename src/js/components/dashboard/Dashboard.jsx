@@ -200,7 +200,7 @@ class Dashboard extends Component {
 
   getSubdashboardKeys() {
     const dashboardId = this.getDashboardIdFromParams();
-    const url = `/api/dashboard/${dashboardId}/subdashboardKeys`;
+    const url = `/openboxes/api/dashboard/${dashboardId}/subdashboardKeys`;
     return apiClient.get(url)
       .then((res) => {
         const subdashboardKeys = res.data;
@@ -230,18 +230,16 @@ class Dashboard extends Component {
       const allPages = Object.entries(this.props.dashboardConfig.dashboard)
         .map(([key, value]) => [key, value]);
       allPages.forEach((page) => {
-        if (page[1].filters) {
-          const filters = Object.entries(page[1].filters)
-            .map(([keyFilter, valueFilter]) => {
-              const filter = {
-                name: keyFilter,
-                endpoint: valueFilter.endpoint,
-              };
-              return filter;
-            });
-          if (filters.length > 0 && page[0] === config) {
-            pageFilters = filters;
-          }
+        const filters = Object.entries(page[1].filters)
+          .map(([keyFilter, valueFilter]) => {
+            const filter = {
+              name: keyFilter,
+              endpoint: valueFilter.endpoint,
+            };
+            return filter;
+          });
+        if (filters.length > 0 && page[0] === config) {
+          pageFilters = filters;
         }
       });
     }
@@ -249,7 +247,7 @@ class Dashboard extends Component {
   }
 
   fetchLocations() {
-    const url = '/api/dashboard/fillRateDestinations';
+    const url = '/openboxes/api/dashboard/fillRateDestinations';
 
     return apiClient.get(url)
       .then((response) => {
@@ -293,7 +291,7 @@ class Dashboard extends Component {
       widgets.push({ widgetId: widgetData.widgetId, order: index + 1 });
     });
 
-    const url = '/api/dashboard/config';
+    const url = '/openboxes/api/dashboard/config';
     const payload = {
       ...this.props.dashboardConfig.dashboard,
       [this.props.activeConfig]: {

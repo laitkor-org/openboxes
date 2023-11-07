@@ -13,18 +13,6 @@ import { connect } from 'react-redux';
 import Alert from 'react-s-alert';
 
 import { fetchUsers, hideSpinner, showSpinner } from 'actions';
-import ProductApi from 'api/services/ProductApi';
-import {
-  COMBINED_SHIPMENT_ITEMS_EXPORT_TEMPLATE,
-  COMBINED_SHIPMENT_ITEMS_IMPORT_TEMPLATE,
-  ORDER_SHOW,
-  STOCK_MOVEMENT_BY_ID,
-  STOCK_MOVEMENT_ITEM_REMOVE,
-  STOCK_MOVEMENT_ITEMS,
-  STOCK_MOVEMENT_REMOVE_ALL_ITEMS,
-  STOCK_MOVEMENT_STATUS,
-  STOCK_MOVEMENT_UPDATE_ITEMS,
-} from 'api/urls';
 import ArrayField from 'components/form-elements/ArrayField';
 import ButtonField from 'components/form-elements/ButtonField';
 import DateField from 'components/form-elements/DateField';
@@ -34,7 +22,7 @@ import SelectField from 'components/form-elements/SelectField';
 import TextField from 'components/form-elements/TextField';
 import CombinedShipmentItemsModal from 'components/stock-movement-wizard/modals/CombinedShipmentItemsModal';
 import AlertMessage from 'utils/AlertMessage';
-import apiClient, { stringUrlInterceptor } from 'utils/apiClient';
+import apiClient from 'utils/apiClient';
 import { renderFormField } from 'utils/form-utils';
 import { debounceProductsFetch } from 'utils/option-utils';
 import Translate, { translateWithDefaultMessage } from 'utils/Translate';
@@ -103,7 +91,7 @@ const FIELDS = {
         getDynamicAttr: ({
           fieldValue,
         }) => ({
-          url: fieldValue?.orderId ? ORDER_SHOW(fieldValue.orderId) : '',
+          url: fieldValue && fieldValue.orderId ? `/openboxes/order/show/${fieldValue.orderId}` : '',
         }),
         attributes: {
           formatValue: fieldValue => fieldValue && fieldValue.orderNumber,
@@ -127,20 +115,8 @@ const FIELDS = {
         label: 'react.stockMovement.lot.label',
         defaultMessage: 'Lot',
         flexWidth: '1',
-        getDynamicAttr: ({
-          rowIndex,
-          values,
-          updateRow,
-          fetchInventoryItem,
-          debouncedInventoryItemFetch,
-        }) => ({
-          onBlur: () => {
-            updateRow(values, rowIndex);
-            fetchInventoryItem(values, rowIndex);
-          },
-          onChange: () => {
-            debouncedInventoryItemFetch(values, rowIndex);
-          },
+        getDynamicAttr: ({ rowIndex, values, updateRow }) => ({
+          onBlur: () => updateRow(values, rowIndex),
         }),
       },
       expirationDate: {
@@ -153,16 +129,8 @@ const FIELDS = {
           autoComplete: 'off',
           placeholderText: 'MM/DD/YYYY',
         },
-        getDynamicAttr: ({
-          rowIndex,
-          values,
-          updateRow,
-          validateExpirationDate,
-        }) => ({
-          onBlur: () => {
-            updateRow(values, rowIndex);
-            validateExpirationDate(values?.lineItems, rowIndex);
-          },
+        getDynamicAttr: ({ rowIndex, values, updateRow }) => ({
+          onBlur: () => updateRow(values, rowIndex),
         }),
       },
       quantityRequested: {
@@ -252,11 +220,6 @@ const FIELDS = {
 
 const LOT_AND_EXPIRY_ERROR = 'react.stockMovement.error.lotAndExpiryControl.label';
 
-// It cannot be in the state, because updating state is not an atomic operation,
-// so the value of this can be changed after triggering the second modal
-// (when the modal is triggered onChange, onBlur triggers it second time)
-let isModalOpen = false;
-
 /* eslint class-methods-use-this: ["error",{ "exceptMethods": ["getLineItemsToBeSaved"] }] */
 /**
  * The second step of stock movement where user can add items to stock list.
@@ -295,14 +258,6 @@ class AddItemsPage extends Component {
     this.saveRequisitionItemsInCurrentStep = this.saveRequisitionItemsInCurrentStep.bind(this);
     this.importTemplate = this.importTemplate.bind(this);
     this.toggleDropdown = this.toggleDropdown.bind(this);
-    this.fetchInventoryItem = this.fetchInventoryItem.bind(this);
-    this.validateExpirationDate = this.validateExpirationDate.bind(this);
-    this.cancelSavingRequisitionItem = this.cancelSavingRequisitionItem.bind(this);
-    this.changeExpirationDate = this.changeExpirationDate.bind(this);
-
-    this.debouncedInventoryItemFetch = _.debounce((lineItems, rowIndex) => {
-      this.fetchInventoryItem(lineItems, rowIndex);
-    }, 1000);
 
     this.debouncedProductsFetch = debounceProductsFetch(
       this.props.debounceTime,
@@ -338,13 +293,13 @@ class AddItemsPage extends Component {
 
     return _.map(items, item => ({
       id: item.id || null,
-      product: { id: item.product.id },
+      'product.id': item.product.id,
       quantityRequested: item.quantityRequested,
       palletName: item.palletName,
       boxName: item.boxName,
       lotNumber: item.lotNumber,
       expirationDate: item.expirationDate,
-      recipient: { id: _.isObject(item.recipient) ? item.recipient.id || '' : item.recipient || '' },
+      'recipient.id': _.isObject(item.recipient) ? item.recipient.id || '' : item.recipient || '',
       sortOrder: item.sortOrder,
       orderItemId: item.orderItemId,
     }));
@@ -511,10 +466,9 @@ class AddItemsPage extends Component {
   /**
    * Shows Inventory item expiration date update confirmation dialog.
    * @param {function} onConfirm
-   * @param {function} onReject
    * @public
    */
-  confirmInventoryItemExpirationDateUpdate(onConfirm, onReject) {
+  confirmInventoryItemExpirationDateUpdate(onConfirm) {
     confirmAlert({
       title: this.props.translate('react.stockMovement.message.confirmSave.label', 'Confirm save'),
       message: this.props.translate(
@@ -528,12 +482,8 @@ class AddItemsPage extends Component {
         },
         {
           label: this.props.translate('react.default.no.label', 'No'),
-          onClick: onReject,
         },
       ],
-      afterClose: () => {
-        isModalOpen = false;
-      },
     });
   }
 
@@ -554,7 +504,7 @@ class AddItemsPage extends Component {
    * @public
    */
   fetchLineItems() {
-    const url = `${STOCK_MOVEMENT_ITEMS(this.state.values.stockMovementId)}?stepNumber=2`;
+    const url = `/openboxes/api/stockMovements/${this.state.values.stockMovementId}/stockMovementItems?stepNumber=2`;
 
     return apiClient.get(url)
       .then((response) => {
@@ -572,7 +522,8 @@ class AddItemsPage extends Component {
   fetchAddItemsPageData() {
     this.props.showSpinner();
 
-    apiClient.get(STOCK_MOVEMENT_BY_ID(this.state.values.stockMovementId))
+    const url = `/openboxes/api/stockMovements/${this.state.values.stockMovementId}`;
+    apiClient.get(url)
       .then((resp) => {
         const { hasManageInventory } = resp.data.data;
         const { statusCode } = resp.data.data;
@@ -597,7 +548,7 @@ class AddItemsPage extends Component {
     this.setState({
       isFirstPageLoaded: true,
     });
-    const url = `${STOCK_MOVEMENT_ITEMS(this.state.values.stockMovementId)}?offset=${startIndex}&max=${this.props.pageSize}&stepNumber=2`;
+    const url = `/openboxes/api/stockMovements/${this.state.values.stockMovementId}/stockMovementItems?offset=${startIndex}&max=${this.props.pageSize}&stepNumber=2`;
     apiClient.get(url)
       .then((response) => {
         this.setLineItems(response, startIndex);
@@ -633,97 +584,17 @@ class AddItemsPage extends Component {
    * @public
    */
   saveAndTransitionToNextStep(formValues, lineItems) {
-    this.saveRequisitionItemsAndTransitionToNextStep(formValues, lineItems);
-  }
-
-  async fetchInventoryItem(values, rowIndex) {
-    this.debouncedInventoryItemFetch.cancel();
-    const lotNumber = values?.lineItems[rowIndex]?.lotNumber;
-    const productId = values?.lineItems[rowIndex]?.product?.id;
-
-    if (!lotNumber || !productId) {
-      return;
+    if (_.some(lineItems, item => item.inventoryItem
+      && item.expirationDate !== item.inventoryItem.expirationDate)) {
+      if (_.some(lineItems, item => item.inventoryItem && item.inventoryItem.quantity && item.inventoryItem.quantity !== '0')) {
+        this.confirmInventoryItemExpirationDateUpdate(() =>
+          this.saveRequisitionItemsAndTransitionToNextStep(formValues, lineItems));
+      } else {
+        this.saveRequisitionItemsAndTransitionToNextStep(formValues, lineItems);
+      }
+    } else {
+      this.saveRequisitionItemsAndTransitionToNextStep(formValues, lineItems);
     }
-
-    const { data } = await ProductApi.getInventoryItem(productId, lotNumber);
-    const mappedLineItems = values?.lineItems.map((lineItem, index) => {
-      if (rowIndex === index) {
-        return {
-          ...lineItem,
-          fetchedInventoryItem: {
-            inventoryItem: data.inventoryItem,
-            quantity: data?.quantityOnHand,
-          },
-        };
-      }
-      return lineItem;
-    });
-
-    this.setState(previousState => ({
-      ...previousState,
-      values: {
-        ...previousState.values,
-        lineItems: mappedLineItems,
-      },
-    }), () => {
-      if (!values.lineItems?.[rowIndex]?.expirationDate) {
-        this.changeExpirationDate(mappedLineItems, rowIndex, data?.inventoryItem?.expirationDate);
-      }
-      this.validateExpirationDate(mappedLineItems, rowIndex);
-    });
-  }
-
-  validateExpirationDate(lineItems, rowIndex) {
-    const lineItem = lineItems?.[rowIndex];
-    const inventoryItem = lineItem?.fetchedInventoryItem?.inventoryItem ||
-      lineItem?.inventoryItem;
-    const quantity = (lineItem?.fetchedInventoryItem ?
-      lineItem?.fetchedInventoryItem?.quantity : lineItem?.inventoryItem?.quantity) || 0;
-    const expirationDateHasChanged = inventoryItem?.expirationDate &&
-      lineItem?.expirationDate &&
-      lineItem?.lotNumber &&
-      lineItem?.expirationDate !== inventoryItem?.expirationDate &&
-      quantity > 0;
-
-    if (expirationDateHasChanged && !isModalOpen) {
-      isModalOpen = true;
-      this.confirmInventoryItemExpirationDateUpdate(
-        () => this.saveRequisitionItems(this.state.values.lineItems),
-        () => this.cancelSavingRequisitionItem(lineItems, rowIndex),
-      );
-    }
-  }
-
-  changeExpirationDate(lineItems, rowIndex, newDate) {
-    const updatedLineItem = { ...lineItems?.[rowIndex], expirationDate: newDate };
-    this.setState(previousState => ({
-      ...previousState,
-      values: {
-        ...previousState.values,
-        lineItems: update(previousState?.values?.lineItems, {
-          [rowIndex]: { $set: updatedLineItem },
-        }),
-      },
-    }));
-  }
-
-  cancelSavingRequisitionItem(lineItems, rowIndex) {
-    const mappedLineItems = lineItems?.map((item, index) => {
-      if (index === rowIndex) {
-        const expirationDate = item?.fetchedInventoryItem?.inventoryItem?.expirationDate ||
-          item?.inventoryItem?.expirationDate;
-        return { ...item, expirationDate };
-      }
-      return item;
-    });
-
-    this.setState({
-      ...this.state,
-      values: {
-        ...this.state.values,
-        lineItems: mappedLineItems,
-      },
-    });
   }
 
   /**
@@ -733,13 +604,14 @@ class AddItemsPage extends Component {
    */
   saveRequisitionItems(lineItems) {
     const itemsToSave = this.getLineItemsToBeSaved(lineItems);
+    const updateItemsUrl = `/openboxes/api/stockMovements/${this.state.values.stockMovementId}/updateItems`;
     const payload = {
       id: this.state.values.stockMovementId,
       lineItems: itemsToSave,
     };
 
     if (payload.lineItems.length) {
-      return apiClient.post(STOCK_MOVEMENT_UPDATE_ITEMS(this.state.values.stockMovementId), payload)
+      return apiClient.post(updateItemsUrl, payload)
         .catch(() => Promise.reject(new Error('react.stockMovement.error.saveRequisitionItems.label')));
     }
 
@@ -783,13 +655,14 @@ class AddItemsPage extends Component {
    */
   saveRequisitionItemsInCurrentStep(itemCandidatesToSave) {
     const itemsToSave = this.getLineItemsToBeSaved(itemCandidatesToSave);
+    const updateItemsUrl = `/openboxes/api/stockMovements/${this.state.values.stockMovementId}/updateItems`;
     const payload = {
       id: this.state.values.stockMovementId,
       lineItems: itemsToSave,
     };
 
     if (payload.lineItems.length) {
-      return apiClient.post(STOCK_MOVEMENT_UPDATE_ITEMS(this.state.values.stockMovementId), payload)
+      return apiClient.post(updateItemsUrl, payload)
         .then((resp) => {
           const { lineItems } = resp.data.data;
 
@@ -835,7 +708,7 @@ class AddItemsPage extends Component {
       if (!errors.length) {
         this.saveRequisitionItemsInCurrentStep(formValues.lineItems)
           .then(() => {
-            window.location = stringUrlInterceptor(`/stockMovement/show/${formValues.stockMovementId}`);
+            window.location = `/openboxes/stockMovement/show/${formValues.stockMovementId}`;
           });
       } else {
         confirmAlert({
@@ -848,7 +721,7 @@ class AddItemsPage extends Component {
             {
               label: this.props.translate('react.default.yes.label', 'Yes'),
               onClick: () => {
-                window.location = stringUrlInterceptor(`/stockMovement/show/${formValues.stockMovementId}`);
+                window.location = `/openboxes/stockMovement/show/${formValues.stockMovementId}`;
               },
             },
             {
@@ -884,8 +757,10 @@ class AddItemsPage extends Component {
    * @public
    */
   removeItem(itemId) {
+    const removeItemsUrl = `/openboxes/api/stockMovementItems/${itemId}/removeItem`;
+
     this.props.showSpinner();
-    return apiClient.delete(STOCK_MOVEMENT_ITEM_REMOVE(itemId))
+    return apiClient.delete(removeItemsUrl)
       .then(() => this.props.hideSpinner())
       .catch(() => {
         this.props.hideSpinner();
@@ -898,9 +773,10 @@ class AddItemsPage extends Component {
    * @public
    */
   removeAll() {
+    const removeItemsUrl = `/openboxes/api/stockMovements/${this.state.values.stockMovementId}/removeAllItems`;
     this.props.showSpinner();
 
-    return apiClient.delete(STOCK_MOVEMENT_REMOVE_ALL_ITEMS(this.state.values.stockMovementId))
+    return apiClient.delete(removeItemsUrl)
       .then(() => {
         this.setState({
           totalCount: 0,
@@ -948,10 +824,11 @@ class AddItemsPage extends Component {
    * @public
    */
   transitionToNextStep() {
+    const url = `/openboxes/api/stockMovements/${this.state.values.stockMovementId}/status`;
     const payload = { status: 'CHECKING' };
 
     if (this.state.values.statusCode === 'CREATED') {
-      return apiClient.post(STOCK_MOVEMENT_STATUS(this.state.values.stockMovementId), payload);
+      return apiClient.post(url, payload);
     }
     return Promise.resolve();
   }
@@ -1001,8 +878,9 @@ class AddItemsPage extends Component {
       },
     };
 
-    return apiClient
-      .post(COMBINED_SHIPMENT_ITEMS_IMPORT_TEMPLATE(stockMovementId), formData, config)
+    const url = `/openboxes/api/combinedShipmentItems/importTemplate/${stockMovementId}`;
+
+    return apiClient.post(url, formData, config)
       .then(() => {
         this.fetchLineItems();
         if (_.isNil(_.last(this.state.values.lineItems).product)) {
@@ -1020,7 +898,7 @@ class AddItemsPage extends Component {
   }
 
   exportTemplate(blank) {
-    const url = `${COMBINED_SHIPMENT_ITEMS_EXPORT_TEMPLATE}?vendor=${this.state.values.origin.id}&destination=${this.state.values.destination.id}${blank ? '&blank=true' : ''}`;
+    const url = `/openboxes/api/combinedShipmentItems/exportTemplate?vendor=${this.state.values.origin.id}&destination=${this.state.values.destination.id}${blank ? '&blank=true' : ''}`;
     apiClient.get(url, { responseType: 'blob' })
       .then((response) => {
         fileDownload(response.data, 'Order-items-template.csv', 'text/csv');
@@ -1147,9 +1025,6 @@ class AddItemsPage extends Component {
                     onResponse: this.fetchLineItems,
                     saveItems: this.saveRequisitionItemsInCurrentStep,
                     invalid,
-                    fetchInventoryItem: this.fetchInventoryItem,
-                    debouncedInventoryItemFetch: this.debouncedInventoryItemFetch,
-                    validateExpirationDate: this.validateExpirationDate,
                   }))}
               </div>
               <div className="submit-buttons">

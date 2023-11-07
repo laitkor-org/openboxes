@@ -13,7 +13,7 @@ import { fetchCurrencies, hideSpinner, showSpinner } from 'actions';
 import DateField from 'components/form-elements/DateField';
 import SelectField from 'components/form-elements/SelectField';
 import TextField from 'components/form-elements/TextField';
-import apiClient, { stringUrlInterceptor } from 'utils/apiClient';
+import apiClient from 'utils/apiClient';
 import { renderFormField } from 'utils/form-utils';
 import { debounceOrganizationsFetch } from 'utils/option-utils';
 import Translate, { translateWithDefaultMessage } from 'utils/Translate';
@@ -150,22 +150,20 @@ class CreateInvoicePage extends Component {
     if (values.vendor && values.vendorInvoiceNumber && values.dateInvoiced && values.currencyUom) {
       this.props.showSpinner();
 
-      const invoiceUrl = `/api/invoices/${values.id || ''}`;
+      const invoiceUrl = `/openboxes/api/invoices/${values.id || ''}`;
 
       const payload = {
         vendor: values.vendor.id,
         vendorInvoiceNumber: values.vendorInvoiceNumber,
         dateInvoiced: values.dateInvoiced,
-        currencyUom: {
-          id: values.currencyUom.id
-        },
+        'currencyUom.id': values.currencyUom.id,
       };
 
       apiClient.post(invoiceUrl, payload)
         .then((response) => {
           if (response.data) {
             const resp = response.data.data;
-            this.props.history.push(stringUrlInterceptor(`/invoice/create/${resp.id}`));
+            this.props.history.push(`/openboxes/invoice/create/${resp.id}`);
             this.props.nextPage({
               ...values,
               id: resp.id,

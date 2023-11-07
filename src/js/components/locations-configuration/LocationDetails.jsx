@@ -9,7 +9,6 @@ import { withRouter } from 'react-router-dom';
 import Alert from 'react-s-alert';
 
 import { fetchUsers, hideSpinner, showSpinner } from 'actions';
-import { LOCATION_CREATE } from 'api/redirectUrls';
 import CheckboxField from 'components/form-elements/CheckboxField';
 import ColorPickerField from 'components/form-elements/ColorPickerField';
 import FileField from 'components/form-elements/FileField';
@@ -18,7 +17,7 @@ import TextField from 'components/form-elements/TextField';
 import AddLocationGroupModal from 'components/locations-configuration/modals/AddLocationGroupModal';
 import AddOrganizationModal from 'components/locations-configuration/modals/AddOrganizationModal';
 import ActivityCode from 'consts/activityCode';
-import apiClient, { stringUrlInterceptor } from 'utils/apiClient';
+import apiClient from 'utils/apiClient';
 import Checkbox from 'utils/Checkbox';
 import { convertToBase64 } from 'utils/file-utils';
 import { renderFormField } from 'utils/form-utils';
@@ -241,7 +240,7 @@ class LocationDetails extends Component {
 
   // eslint-disable-next-line class-methods-use-this
   getSupportLinks() {
-    const url = '/api/supportLinks';
+    const url = '/openboxes/api/supportLinks';
 
     apiClient.get(url).then((response) => {
       const supportLinks = response.data.data;
@@ -259,11 +258,11 @@ class LocationDetails extends Component {
   dataFetched = false;
 
   fetchLocation() {
-    const url = `/api/locations/${this.props.match.params.locationId}`;
+    const url = `/openboxes/api/locations/${this.props.match.params.locationId}`;
     apiClient.get(url).then((response) => {
       const location = response.data.data;
       if (!location) {
-        this.props.history.push(stringUrlInterceptor('/locationsConfiguration/create'));
+        this.props.history.push('/openboxes/locationsConfiguration/create');
         return;
       }
       this.setState({
@@ -302,7 +301,7 @@ class LocationDetails extends Component {
   }
 
   fetchLocationTypes() {
-    const url = '/api/locations/locationTypes';
+    const url = '/openboxes/api/locations/locationTypes';
 
     apiClient.get(url)
       .then((response) => {
@@ -325,7 +324,7 @@ class LocationDetails extends Component {
   }
 
   fetchSupportedActivities() {
-    const url = '/api/locations/supportedActivities';
+    const url = '/openboxes/api/locations/supportedActivities';
 
     apiClient.get(url)
       .then((response) => {
@@ -351,14 +350,23 @@ class LocationDetails extends Component {
 
       let locationUrl = '';
       if (values.locationId) {
-        locationUrl = `/api/locations/${values.locationId}?useDefaultActivities=${this.state.useDefaultActivities}`;
+        locationUrl = `/openboxes/api/locations/${values.locationId}?useDefaultActivities=${this.state.useDefaultActivities}`;
       } else {
-        locationUrl = `/api/locations?useDefaultActivities=${this.state.useDefaultActivities}`;
+        locationUrl = `/openboxes/api/locations?useDefaultActivities=${this.state.useDefaultActivities}`;
       }
 
       const payload = {
-        ...values,
+        name: values.name,
+        active: values.active,
+        locationNumber: values.locationNumber,
+        'organization.id': values.organization.id,
+        'locationGroup.id': _.get(values.locationGroup, 'id') || '',
+        'manager.id': _.get(values.manager, 'id') || '',
+        'locationType.id': _.get(values.locationType, 'id') || '',
         supportedActivities: _.map(values.supportedActivities, val => val.value),
+        logo: values.logo,
+        bgColor: values.bgColor || '',
+        fgColor: values.fgColor || '',
       };
 
       apiClient.post(locationUrl, payload)
@@ -366,7 +374,7 @@ class LocationDetails extends Component {
           this.props.hideSpinner();
           Alert.success(this.props.translate('react.locationsConfiguration.alert.locationSaveCompleted.label', 'Location was successfully saved!'), { timeout: 3000 });
           const resp = response.data.data;
-          this.props.history.push(LOCATION_CREATE(resp.id));
+          this.props.history.push(`/openboxes/locationsConfiguration/create/${resp.id}`);
           this.props.nextPage({
             ...values,
             locationId: resp.id,

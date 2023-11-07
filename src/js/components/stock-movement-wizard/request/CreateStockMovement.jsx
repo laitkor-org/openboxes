@@ -11,14 +11,13 @@ import { connect } from 'react-redux';
 import { withRouter } from 'react-router-dom';
 
 import { hideSpinner, showSpinner } from 'actions';
-import { STOCKLIST_API } from 'api/urls';
 import userApi from 'api/services/UserApi';
 import DateField from 'components/form-elements/DateField';
 import SelectField from 'components/form-elements/SelectField';
 import TextField from 'components/form-elements/TextField';
 import ActivityCode from 'consts/activityCode';
 import RoleType from 'consts/roleType';
-import apiClient, { stringUrlInterceptor } from 'utils/apiClient';
+import apiClient from 'utils/apiClient';
 import { renderFormField } from 'utils/form-utils';
 import { debounceLocationsFetch, debouncePeopleFetch } from 'utils/option-utils';
 import Translate, { translateWithDefaultMessage } from 'utils/Translate';
@@ -109,7 +108,7 @@ const DEFAULT_FIELDS = {
           props.fetchStockLists(value, props.destination);
           if (value?.supportedActivities?.includes(ActivityCode.APPROVE_REQUEST)) {
             props.setSupportsApprover(true);
-            props.fetchAvailableApprovers(value.id);
+            props.fetchAvailableApprovers();
           } else {
             props.setSupportsApprover(false);
           }
@@ -192,6 +191,7 @@ const APPROVER_FIELDS = {
       showValueTooltip: true,
       valueKey: 'id',
       labelKey: 'name',
+      subtext: 'react.stockMovement.request.approvers.leaveBlank.label',
     },
     type: SelectField,
     getDynamicAttr: props => ({
@@ -199,7 +199,6 @@ const APPROVER_FIELDS = {
     }),
   },
 };
-
 
 const ELECTRONIC = 'ELECTRONIC';
 
@@ -234,7 +233,7 @@ class CreateStockMovement extends Component {
     if (this.state.values.origin) {
       if (this.state.values.origin?.supportedActivities?.includes(ActivityCode.APPROVE_REQUEST)) {
         this.setSupportsApprover(true);
-        this.fetchAvailableApprovers(this.state.values.origin.id);
+        this.fetchAvailableApprovers();
       } else {
         this.setSupportsApprover(false);
       }
@@ -292,7 +291,7 @@ class CreateStockMovement extends Component {
    * @public
    */
   fetchRequisitionTypes() {
-    const url = '/api/getRequestTypes';
+    const url = '/openboxes/api/getRequestTypes';
 
     return apiClient.get(url)
       .then((response) => {
@@ -301,9 +300,9 @@ class CreateStockMovement extends Component {
       .catch(() => this.props.hideSpinner());
   }
 
-  fetchAvailableApprovers(locationId) {
+  fetchAvailableApprovers() {
     return userApi.getUsersOptions({
-      params: { roleTypes: RoleType.ROLE_REQUISITION_APPROVER, location: locationId },
+      params: { roleTypes: RoleType.ROLE_REQUISITION_APPROVER },
     })
       .then((response) => {
         const options = response.data.data?.map(user => ({
@@ -344,12 +343,9 @@ class CreateStockMovement extends Component {
    */
   fetchStockLists(origin, destination, clearStocklist) {
     this.props.showSpinner();
-    return apiClient.get(STOCKLIST_API, {
-      params: {
-        origin: origin.id,
-        destination: destination.id,
-      },
-    })
+    const url = `/openboxes/api/stocklists?origin=${origin.id}&destination=${destination.id}`;
+
+    return apiClient.get(url)
       .then((response) => {
         const stocklists = _.map(response.data.data, stocklist => (
           {
@@ -357,7 +353,7 @@ class CreateStockMovement extends Component {
           }
         ));
 
-        const stocklistChanged = !_.find(stocklists, item => item.value.id === _.get(this.state.values, 'stocklist'));
+        const stocklistChanged = !_.find(stocklists, item => item.value.id === _.get(this.state.values, 'stocklist.id'));
 
         if (stocklistChanged && clearStocklist) {
           clearStocklist();
@@ -381,19 +377,19 @@ class CreateStockMovement extends Component {
 
       let stockMovementUrl = '';
       if (values.stockMovementId) {
-        stockMovementUrl = `/api/stockMovements/${values.stockMovementId}/updateRequisition`;
+        stockMovementUrl = `/openboxes/api/stockMovements/${values.stockMovementId}/updateRequisition`;
       } else {
-        stockMovementUrl = '/api/stockMovements';
+        stockMovementUrl = '/openboxes/api/stockMovements';
       }
 
       const payload = {
         name: '',
         description: values.description,
         dateRequested: values.dateRequested,
-        origin: values.origin.id,
-        destination: values.destination.id,
-        requestedBy: values.requestedBy.id,
-        stocklist: { id: _.get(values.stocklist, 'id', '') },
+        'origin.id': values.origin.id,
+        'destination.id': values.destination.id,
+        'requestedBy.id': values.requestedBy.id,
+        'stocklist.id': _.get(values.stocklist, 'id') || '',
         requestType: values.requestType.id,
         sourceType: ELECTRONIC,
         approvers: values.approvers?.map(user => user.id),
@@ -403,7 +399,7 @@ class CreateStockMovement extends Component {
         .then((response) => {
           if (response.data) {
             const resp = response.data.data;
-            this.props.history.push(stringUrlInterceptor(`/stockMovement/createRequest/${resp.id}`));
+            this.props.history.push(`/openboxes/stockMovement/createRequest/${resp.id}`);
             this.props.nextPage({
               ...values,
               stockMovementId: resp.id,
@@ -459,6 +455,7 @@ class CreateStockMovement extends Component {
       });
     }
   }
+
   render() {
     const FIELDS = this.state.supportsApprover ? APPROVER_FIELDS : DEFAULT_FIELDS;
     return (
@@ -484,8 +481,8 @@ class CreateStockMovement extends Component {
                 stocklists: this.state.stocklists,
                 fetchStockLists: (origin, destination) =>
                   this.fetchStockLists(origin, destination, mutators.clearStocklist),
-                fetchAvailableApprovers: (locationId) => {
-                  this.fetchAvailableApprovers(locationId).then((resp) => {
+                fetchAvailableApprovers: () => {
+                  this.fetchAvailableApprovers().then((resp) => {
                     // if there is only one available approver to choose from
                     // then preselect this options by default
                     if (resp?.length === 1) {

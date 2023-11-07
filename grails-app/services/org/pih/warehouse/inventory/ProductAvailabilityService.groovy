@@ -1074,8 +1074,8 @@ class ProductAvailabilityService {
                 eq("binLocationName", remainingProductAvailability.binLocationName)
             }
 
-            // If exists and it is not just updated availability in the UPDATE query, then add quantities from obsolete PA to the new main one
-            if (existingProductAvailability && existingProductAvailability.id != remainingProductAvailability.id) {
+            // If exists, then add quantities from obsolete PA to the new main one
+            if (existingProductAvailability) {
                 existingProductAvailability.quantityOnHand += remainingProductAvailability.quantityOnHand
                 existingProductAvailability.quantityAllocated += remainingProductAvailability.quantityAllocated
                 existingProductAvailability.quantityNotPicked += remainingProductAvailability.quantityNotPicked

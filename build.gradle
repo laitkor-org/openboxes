@@ -65,7 +65,7 @@ plugins {
     id 'com.github.ben-manes.versions' version '0.27.0'
 
     // git magic, but releases past v2.3.0 require Gradle 5.1+
-    id 'com.gorylenko.gradle-git-properties' version '2.2.4'
+    // id 'com.gorylenko.gradle-git-properties' version '2.2.4'
 
     // enable `npmInstall` and `npm_run_*` targets, and the `node` block below
     id 'com.github.node-gradle.node' version '1.5.3'
@@ -93,12 +93,23 @@ apply plugin: 'org.grails.plugins.views-json'
 
 // enable `grails gradle dependencyCheckAnalyze` (security checker)
 apply plugin: 'org.owasp.dependencycheck'
-
+apply plugin: 'application'
 group 'com.openboxes'
+//apply plugin: 'application'
 mainClassName = 'org.pih.warehouse.Application'
+//mainClass = 'org.pih.warehouse.Application'
+//mainClassName = 'testPackApp.Application'
+//springBoot {
+    //mainClass = 'testPackApp.Application'
+    //mainClass = 'org.pih.warehouse.Application'
+   // buildInfo()
+//}
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
-
+/*
+application {
+    mainClass = 'grails.org.pih.warehouse.Application'
+}*/
 /*
  * From the asset-pipeline manual: "If you want settings to apply to
  * both development runtime and build time the properties have to be
@@ -373,6 +384,9 @@ repositories {
  */
 sourceSets {
     main {
+        groovy {
+            srcDirs = ['grails-app/domain','grails-app/utils','grails-app/services','src/groovy','grails-app/taglib','grails-app/jobs','grails-app/init','grails-app/conf']
+        }
         resources {
             srcDir 'grails-app/migrations'
         }
@@ -380,11 +394,18 @@ sourceSets {
 }
 
 springBoot {
-    buildInfo()
-    mainClass = 'org.pih.warehouse.Application'
+     buildInfo()
+     mainClass = 'org.pih.warehouse.Application'     
 }
 
 war {
+    //from('web-app') {
+        //include 'WEB-INF/applicationContext.xml'
+        //include 'WEB-INF/sitemesh.xml'
+    //}
+    //from('src') {
+        //include 'templates/war/web.xml'
+    //}
     archiveName = 'openboxes.war'
     zip64 = true
 }
@@ -433,6 +454,9 @@ dependencies {
     runtime "com.bertramlabs.plugins:asset-pipeline-grails:${assetPipelineVersion}"
 
     implementation "com.github.librepdf:openpdf:${openPdfVersion}"
+
+    //jay
+    compile "org.codehaus.groovy:groovy-all:2.4.17"
 
     // security patch
     compile 'com.google.code.gson:gson:2.10.1'
@@ -513,6 +537,9 @@ dependencies {
     implementation 'org.codehaus.groovy:groovy-sql'
 
     compile 'org.docx4j:docx4j-JAXB-ReferenceImpl'
+
+    compile "org.grails:grails-dependencies:3.3.10"
+   	
 
     // enable grails console web ui
     console 'org.grails:grails-console'
@@ -741,6 +768,7 @@ dependencies {
     implementation "org.xhtmlrenderer:flying-saucer-pdf-openpdf:${flyingSaucerVersion}"
 
     implementation 'com.github.albfernandez:juniversalchardet:2.4.0'
+    implementation('org.apache.tomcat.embed:tomcat-embed-jasper')	
 
     // security patch
     compile 'org.yaml:snakeyaml:1.33'

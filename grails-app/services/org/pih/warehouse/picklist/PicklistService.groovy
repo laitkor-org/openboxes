@@ -80,7 +80,7 @@ class PicklistService {
                 binLocations.add(it.binLocation?.id)
                 it.delete()
             }
-            picklist.save(flush: true)
+            picklist.save()
         }
 
         productAvailabilityService.refreshProductsAvailability(orderItem?.order?.origin?.id, [orderItem?.product?.id], binLocations?.unique(), false)

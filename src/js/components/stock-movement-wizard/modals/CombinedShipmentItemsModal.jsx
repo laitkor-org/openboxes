@@ -7,7 +7,6 @@ import { getTranslate } from 'react-localize-redux';
 import { connect } from 'react-redux';
 
 import { hideSpinner, showSpinner } from 'actions';
-import { ORDER_SHOW } from 'api/urls';
 import ArrayField from 'components/form-elements/ArrayField';
 import LabelField from 'components/form-elements/LabelField';
 import ModalWrapper from 'components/form-elements/ModalWrapper';
@@ -64,7 +63,7 @@ const FIELDS = {
         getDynamicAttr: ({
           fieldValue,
         }) => ({
-          url: fieldValue?.orderId ? ORDER_SHOW(fieldValue.orderId) : '',
+          url: fieldValue && fieldValue.orderId ? `/openboxes/order/show/${fieldValue.orderId}` : '',
         }),
         attributes: {
           formatValue: fieldValue => fieldValue && fieldValue.orderNumber,
@@ -213,7 +212,7 @@ class CombinedShipmentItemsModal extends Component {
         sortOrder: _.toInteger(item.sortOrder),
       })),
     };
-    const url = `/api/combinedShipmentItems/addToShipment/${shipment}`;
+    const url = `/openboxes/api/combinedShipmentItems/addToShipment/${shipment}`;
 
     apiClient.post(url, payload)
       .then(() => {
@@ -235,7 +234,7 @@ class CombinedShipmentItemsModal extends Component {
 
   getOrderNumberOptions() {
     const { vendor, destination } = this.props;
-    const url = `/api/orderNumberOptions?vendor=${vendor}&destination=${destination}`;
+    const url = `/openboxes/api/orderNumberOptions?vendor=${vendor}&destination=${destination}`;
     apiClient.get(url).then(resp => this.setState({ orderNumberOptions: resp.data.data }));
   }
 
@@ -252,7 +251,7 @@ class CombinedShipmentItemsModal extends Component {
   fetchOrderItems() {
     const { selectedOrders, selectedProductId, selectedOrderItems } = this.state;
     const { vendor, destination } = this.props;
-    const url = '/api/combinedShipmentItems/findOrderItems';
+    const url = '/openboxes/api/combinedShipmentItems/findOrderItems';
     const payload = {
       orderIds: _.map(selectedOrders, o => o.id), productId: selectedProductId, vendor, destination,
     };

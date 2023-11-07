@@ -1,37 +1,22 @@
-version: "3.8"
+version: "2"
 services:
-    app:
-      extends: 
-        file: docker-compose-generic.yml
-        service: app
-      image: ghcr.io/openboxes/openboxes:feature-upgrade-to-grails-3.3.10
-      # Use below 'image' property (with proper tag) if you use locally-built image
-      # image: openboxes/openboxes:latest
-      environment:
-        # It's hardcoded - DB connection happens via docker network
-        DATASOURCE_URL: jdbc:mysql://db/openboxes?useSSL=false
-      depends_on: 
-        db:
-          condition: service_healthy
+  db:
+    image: mysql:5.7
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: openboxes
+      MYSQL_USER: openboxes
+      MYSQL_PASSWORD: openboxes
+    volumes:
+      - ./openboxes-mysql.cnf:/etc/mysql/conf.d/openboxes-mysql.cnf
+      - ./mysql/:/var/lib/mysql/
 
-    nginx:
-      extends: 
-        file: docker-compose-generic.yml
-        service: nginx
-      depends_on:
-        - app
-
-    db:
-      image: mysql:5.7
-      container_name: openboxes-db
-      environment:
-        MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
-        MYSQL_DATABASE: openboxes
-        MYSQL_USER: ${DATASOURCE_USERNAME:-openboxes}
-        MYSQL_PASSWORD: ${DATASOURCE_PASSWORD:-openboxes}
-      volumes:
-        - ./mysql/:/var/lib/mysql/
-      healthcheck:
-        test: mysqladmin ping -h localhost -u $$MYSQL_USER --password=$$MYSQL_PASSWORD
-        timeout: 20s
-        retries: 5
+  tomcat:
+    image: tomcat:7
+    ports:
+      - "8072:8080"
+    volumes:
+      - ./openboxes.war:/usr/local/tomcat/webapps/openboxes.war
+      - ./openboxes-config.properties:/root/.grails/openboxes-config.properties
+    environment:
+      CATALINA_OPTS: "$CATALINA_OPTS -server -Xms1024m -Xmx2024m -XX:MaxPermSize=256m -Djava.security.egd=file:/dev/./urandom"

@@ -5,7 +5,7 @@ import { connect } from 'react-redux';
 import ReactTable from 'react-table';
 
 import { fetchTranslations } from 'actions';
-import apiClient, { stringUrlInterceptor } from 'utils/apiClient';
+import apiClient from 'utils/apiClient';
 import Translate from 'utils/Translate';
 
 import 'react-table/react-table.css';
@@ -18,17 +18,17 @@ const COLUMNS = [
     headerClassName: 'text-left font-weight-bold px-4 py-3',
     className: 'px-4 py-2 btn-link',
     Cell: row => (
-      <a href={stringUrlInterceptor(`/stockMovement/show/${row.original.id}`)} >
+      <a href={`/openboxes/stockMovement/show/${row.original.id}`} >
         { row.original.identifier }
       </a>
     ),
   },
   {
     Header: 'Current Status',
-    accessor: 'displayStatus',
+    accessor: 'shipmentStatus',
     headerClassName: 'text-left font-weight-bold px-4 py-3',
     className: 'px-4 py-2',
-    maxWidth: 200,
+    maxWidth: 180,
   },
   {
     Header: 'Description',
@@ -36,7 +36,7 @@ const COLUMNS = [
     headerClassName: 'text-left font-weight-bold px-4 py-3',
     className: 'px-4 py-2 btn-link',
     Cell: row => (
-      <a href={stringUrlInterceptor(`/stockMovement/show/${row.original.id}`)} >
+      <a href={`/openboxes/stockMovement/show/${row.original.id}`} >
         { row.original.description }
       </a>
     ),
@@ -84,7 +84,7 @@ class StockRequestDashboard extends Component {
   }
 
   fetchStockMovementItems(page, pageSize) {
-    const url = '/api/stockMovements';
+    const url = '/openboxes/api/stockMovements';
     const params = {
       destination: this.props.currentLocation.id,
       direction: 'INBOUND',
@@ -116,7 +116,7 @@ class StockRequestDashboard extends Component {
             />
           </h3>
           <a
-            href={stringUrlInterceptor('/stockMovement/createRequest')}
+            href="/openboxes/stockMovement/createRequest"
             className="btn btn-primary d-flex justify-content-center align-items-center font-weight-bold"
           >
             <i className="fa fa-plus mr-1" />

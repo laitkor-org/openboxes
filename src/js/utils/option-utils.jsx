@@ -11,7 +11,7 @@ import splitTranslation from 'utils/translation-utils';
 export const debouncePeopleFetch = (waitTime, minSearchLength) =>
   _.debounce((searchTerm, callback) => {
     if (searchTerm && searchTerm.length >= minSearchLength) {
-      apiClient.get('/api/persons', { params: { name: searchTerm, status: true } })
+      apiClient.get('/openboxes/api/persons', { params: { name: searchTerm, status: true } })
         .then(result => callback(_.map(result.data.data, obj => (
           {
             ...obj,
@@ -60,7 +60,7 @@ export const debounceLocationsFetch = (
       const activityCodesParams = activityCodes ? activityCodes.map(activityCode => `&activityCodes=${activityCode}`).join('') : '';
       const { direction } = queryString.parse(window.location.search);
       const directionParam = fetchAll ? null : direction;
-      apiClient.get(`/api/locations?name=${searchTerm}${directionParam ? `&direction=${directionParam}` : ''}${activityCodesParams}${isReturnOrder ? '&isReturnOrder=true' : ''}`)
+      apiClient.get(`/openboxes/api/locations?name=${searchTerm}${directionParam ? `&direction=${directionParam}` : ''}${activityCodesParams}${isReturnOrder ? '&isReturnOrder=true' : ''}`)
         .then(result => callback(_.map(result.data.data, (obj) => {
           const locationType = withTypeDescription ? ` [${obj.locationType.description}]` : '';
           const label = `${obj.name}${locationType}`;
@@ -81,7 +81,7 @@ export const debounceLocationsFetch = (
 export const debounceGlobalSearch = (waitTime, minSearchLength) =>
   _.debounce((searchTerm, callback) => {
     if (searchTerm && searchTerm.length >= minSearchLength) {
-      apiClient.get(`/json/globalSearch?term=${searchTerm}`)
+      apiClient.get(`/openboxes/json/globalSearch?term=${searchTerm}`)
         .then(result => callback(_.map(result.data, obj => (
           {
             value: obj.url,
@@ -101,7 +101,7 @@ export const debounceGlobalSearch = (waitTime, minSearchLength) =>
 export const debounceProductsFetch = (waitTime, minSearchLength, locationId) =>
   _.debounce((searchTerm, callback) => {
     if (searchTerm && searchTerm.length >= minSearchLength) {
-      apiClient.get(`/api/products/search?name=${searchTerm}&productCode=${searchTerm}&location.id=${locationId}`)
+      apiClient.get(`/openboxes/api/products/search?name=${searchTerm}&productCode=${searchTerm}&location.id=${locationId}`)
         .then(result => callback(_.map(result.data.data, obj => (
           {
             value: obj.id,
@@ -113,7 +113,6 @@ export const debounceProductsFetch = (waitTime, minSearchLength, locationId) =>
             displayName: obj.displayName,
             color: obj.color,
             exactMatch: obj.exactMatch,
-            active: obj.active,
           }
         ))))
         .catch(() => callback([]));
@@ -125,7 +124,7 @@ export const debounceProductsFetch = (waitTime, minSearchLength, locationId) =>
 export const debounceAvailableItemsFetch = (waitTime, minSearchLength) =>
   _.debounce((searchTerm, callback) => {
     if (searchTerm && searchTerm.length >= minSearchLength) {
-      apiClient.get(`/api/products/search?name=${searchTerm}&productCode=${searchTerm}&availableItems=true`)
+      apiClient.get(`/openboxes/api/products/search?name=${searchTerm}&productCode=${searchTerm}&availableItems=true`)
         .then(result => callback(_.map(result.data.data, obj => (
           {
             id: obj.id,
@@ -148,7 +147,7 @@ export const debounceAvailableItemsFetch = (waitTime, minSearchLength) =>
 export const debounceProductsInOrders = (waitTime, minSearchLength, vendor, destination) =>
   _.debounce((searchTerm, callback) => {
     if (searchTerm && searchTerm.length >= minSearchLength) {
-      apiClient.get(`/api/combinedShipmentItems/getProductsInOrders?name=${searchTerm}&vendor=${vendor}&destination=${destination}`)
+      apiClient.get(`/openboxes/api/combinedShipmentItems/getProductsInOrders?name=${searchTerm}&vendor=${vendor}&destination=${destination}`)
         .then(result => callback(_.map(result.data.data, obj => (
           {
             value: obj.id,
@@ -169,7 +168,7 @@ export const debounceProductsInOrders = (waitTime, minSearchLength, vendor, dest
 export const debounceOrganizationsFetch = (waitTime, minSearchLength, roleTypes = ['ROLE_SUPPLIER'], active = false) =>
   _.debounce((searchTerm, callback) => {
     if (searchTerm && searchTerm.length >= minSearchLength) {
-      apiClient.get(`/api/organizations?q=${searchTerm}${roleTypes ? roleTypes.map(roleType => `&roleType=${roleType}`).join('') : ''}&active=${active}`)
+      apiClient.get(`/openboxes/api/organizations?q=${searchTerm}${roleTypes ? roleTypes.map(roleType => `&roleType=${roleType}`).join('') : ''}&active=${active}`)
         .then(result => callback(_.map(result.data.data, obj => (
           {
             value: obj.id,
@@ -187,7 +186,7 @@ export const debounceOrganizationsFetch = (waitTime, minSearchLength, roleTypes 
 export const debounceLocationGroupsFetch = (waitTime, minSearchLength) =>
   _.debounce((searchTerm, callback) => {
     if (searchTerm && searchTerm.length >= minSearchLength) {
-      apiClient.get(`/api/locationGroups?q=${searchTerm}`)
+      apiClient.get(`/openboxes/api/locationGroups?q=${searchTerm}`)
         .then(result => callback(_.map(result.data.data, obj => (
           {
             id: obj.id,
@@ -203,7 +202,7 @@ export const debounceLocationGroupsFetch = (waitTime, minSearchLength) =>
   }, waitTime);
 
 export const organizationsFetch = (roleTypes = ['ROLE_SUPPLIER'], active = false) =>
-  apiClient.get(`/api/organizations?${roleTypes ? roleTypes.map(roleType => `&roleType=${roleType}`).join('') : ''}&active=${active}`)
+  apiClient.get(`/openboxes/api/organizations?${roleTypes ? roleTypes.map(roleType => `&roleType=${roleType}`).join('') : ''}&active=${active}`)
     .then((res) => {
       if (res.data.data) {
         return res.data.data.map(obj => (
@@ -219,27 +218,27 @@ export const organizationsFetch = (roleTypes = ['ROLE_SUPPLIER'], active = false
     });
 
 export const fetchUserById = async (id) => {
-  const response = await apiClient(`/api/generic/person/${id}`);
+  const response = await apiClient(`/openboxes/api/generic/person/${id}`);
   return response.data?.data;
 };
 
 export const fetchLocationById = async (id) => {
-  const response = await apiClient(`/api/locations/${id}`);
+  const response = await apiClient(`/openboxes/api/locations/${id}`);
   return response.data?.data;
 };
 
 export const fetchProductsCategories = async () => {
-  const response = await apiClient.get('/api/categoryOptions');
+  const response = await apiClient.get('/openboxes/api/categoryOptions');
   return response.data.data;
 };
 
 export const fetchProductsCatalogs = async () => {
-  const response = await apiClient.get('/api/catalogOptions');
+  const response = await apiClient.get('/openboxes/api/catalogOptions');
   return response.data.data;
 };
 
 export const fetchProductsTags = async () => {
-  const response = await apiClient.get('/api/tagOptions');
+  const response = await apiClient.get('/openboxes/api/tagOptions');
   return response.data.data;
 };
 

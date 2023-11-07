@@ -18,7 +18,6 @@ import org.springframework.context.ApplicationListener
 class ShipmentStatusTransitionEventService implements ApplicationListener<ShipmentStatusTransitionEvent> {
 
     def notificationService
-    def webhookPublisherService
 
     void onApplicationEvent(ShipmentStatusTransitionEvent event) {
         log.info "Application event ${event} has been published!"
@@ -39,9 +38,6 @@ class ShipmentStatusTransitionEventService implements ApplicationListener<Shipme
             notificationService.sendShipmentIssuedNotification(shipment, shipment.origin, outboundShippedRoleTypes)
             notificationService.sendShipmentIssuedNotification(shipment, shipment.destination, inboundShippedRoleTypes)
             notificationService.sendShipmentItemsShippedNotification(shipment)
-
-            // Temporarily hard-code publishing webhook events for shipped events
-            webhookPublisherService.publishShippedEvent(shipment)
         }
         else if (event.shipmentStatusCode in [ShipmentStatusCode.RECEIVED, ShipmentStatusCode.PARTIALLY_RECEIVED]) {
             notificationService.sendShipmentReceiptNotification(shipment, shipment.origin, outboundReceivedRoleTypes)

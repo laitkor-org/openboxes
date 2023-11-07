@@ -15,7 +15,6 @@ import grails.core.GrailsApplication
 import org.pih.warehouse.core.GlAccount
 import org.pih.warehouse.core.Location
 import org.pih.warehouse.core.Tag
-import org.pih.warehouse.inventory.InventoryItem
 import org.pih.warehouse.product.Category
 import org.pih.warehouse.product.Product
 import org.pih.warehouse.product.ProductAssociation
@@ -119,7 +118,7 @@ class ProductApiController extends BaseDomainApiController {
             return
         }
 
-        String[] terms = params?.name?.replaceAll("'", "\\\\'")?.split(",| ")?.findAll { it }
+        String[] terms = params?.name?.split(",| ")?.findAll { it }
         def products, availableItems = []
         if(params.availableItems) {
             Location location = Location.get(session.warehouse.id)
@@ -278,13 +277,4 @@ class ProductApiController extends BaseDomainApiController {
         render([monthlyDemand: demand.monthlyDemand, quantityOnHand: quantityOnHand] as JSON)
     }
 
-    def getInventoryItem() {
-        InventoryItem inventoryItem = InventoryItem.findByProductAndLotNumber(Product.load(params.productId), params.lotNumber)
-        if (inventoryItem) {
-            Integer quantityOnHand = productAvailabilityService.getQuantityOnHand(inventoryItem)
-            render([inventoryItem: inventoryItem, quantityOnHand: quantityOnHand] as JSON)
-            return
-        }
-        render([inventoryItem: inventoryItem, quantityOnHand: 0] as JSON)
-    }
 }
